@@ -663,7 +663,7 @@ document.addEventListener('click',function(e){
     fetch(API+'/auth/request-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:state.authPhone})})
       .then(function(r){return r.json();})
       .then(function(d){
-        if(d.error){el.disabled=false;el.textContent='Send Code';alert(d.error);}
+        if(d.error){el.disabled=false;el.textContent='Send Code';alert(d.error.message||'Failed to send code.');}
         else{state.authStep='otp';render();}
       })
       .catch(function(){el.disabled=false;el.textContent='Send Code';alert('Failed to send code. Check your number and try again.');});
@@ -677,7 +677,7 @@ document.addEventListener('click',function(e){
       .then(function(r){return r.json();})
       .then(function(d){
         if(d.token){state.token=d.token;state.user=d.user;localStorage.setItem('vt_token',d.token);go('browse');}
-        else{el.disabled=false;el.textContent='Verify Code';alert(d.error||'Invalid code. Please try again.');}
+        else{el.disabled=false;el.textContent='Verify Code';alert((d.error&&d.error.message)||'Invalid code. Please try again.');}
       })
       .catch(function(){el.disabled=false;el.textContent='Verify Code';alert('Verification failed. Please try again.');});
   }
