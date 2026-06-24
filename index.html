@@ -278,6 +278,7 @@ var checkoutMethods=[
 ];
 
 /* ============================ STATE ============================ */
+var API='https://vertera-api-production.up.railway.app';
 var state={
   view:'home', adminTab:'users', signupMode:false, authStep:'phone', menuOpen:false,
   filters:{q:'',type:'all',priceMax:3000,scoreMax:100,cadastre:false}, browseMobileView:'list',
@@ -286,6 +287,9 @@ var state={
   setTab:'profile', twofa:true,
   notif:{fraud:true,price:true,listings:false,messages:true,marketing:false},
   profile:{name:'Grace Phiri',email:'grace@email.com',phone:'+260 97 555 0142'},
+  token:localStorage.getItem('vt_token')||null,
+  user:null,
+  authPhone:'',
 };
 var _map=null,_markerGroup=null,_cadastre=null,_meMarker=null,_io=null;
 
@@ -650,9 +654,41 @@ document.addEventListener('click',function(e){
   else if(cmd==='bview'){ state.browseMobileView=arg; var b=document.querySelector('.r-browse-body'); if(b){b.className='r-browse-body mv-'+arg;} document.querySelectorAll('[data-act^="bview"]').forEach(function(btn){var k=btn.getAttribute('data-act').split(':')[1];btn.style.background=k===arg?'#16131F':'transparent';btn.style.color=k===arg?'#fff':'#8b857a';}); if(_map)setTimeout(function(){_map.invalidateSize();},130); }
   else if(cmd==='nearme'){ nearMe(); }
   else if(cmd==='signin-tab'){ state.signupMode=(arg==='up'); state.authStep='phone'; render(); }
-  else if(cmd==='reqotp'){ state.authStep='otp'; render(); }
-  else if(cmd==='verifyotp'){ go('browse'); }
-  else if(cmd==='sub'){ var i=document.getElementById('subEmail'); if(i&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.value.trim())){ i.parentElement.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:#7CCF9A;font-size:16px"><span>\u2713</span><span>You\u2019re on the list — we\u2019ll be in touch.</span></div>'; } }
+  else if(cmd==='reqotp'){
+    var inp=document.getElementById('phoneLocal');
+    var local=inp?inp.value.trim().replace(/\s/g,''):'';
+    if(!local){alert('Please enter your phone number.');return;}
+    state.authPhone='+260'+local;
+    el.disabled=true; el.textContent='Sending…';
+    fetch(API+'/auth/request-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:state.authPhone})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.error){el.disabled=false;el.textContent='Send Code';alert(d.error);}
+        else{state.authStep='otp';render();}
+      })
+      .catch(function(){el.disabled=false;el.textContent='Send Code';alert('Failed to send code. Check your number and try again.');});
+  }
+  else if(cmd==='verifyotp'){
+    var boxes=document.querySelectorAll('[inputmode="numeric"]');
+    var otp=Array.from(boxes).map(function(b){return b.value;}).join('');
+    if(otp.length<6){alert('Please enter the full 6-digit code.');return;}
+    el.disabled=true; el.textContent='Verifying…';
+    fetch(API+'/auth/verify-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:state.authPhone,otp:otp})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.token){state.token=d.token;state.user=d.user;localStorage.setItem('vt_token',d.token);go('browse');}
+        else{el.disabled=false;el.textContent='Verify Code';alert(d.error||'Invalid code. Please try again.');}
+      })
+      .catch(function(){el.disabled=false;el.textContent='Verify Code';alert('Verification failed. Please try again.');});
+  }
+  else if(cmd==='sub'){
+    var i=document.getElementById('subEmail');
+    if(i&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.value.trim())){
+      var email=i.value.trim();
+      fetch(API+'/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})}).catch(function(){});
+      i.parentElement.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:#7CCF9A;font-size:16px"><span>✓</span><span>You’re on the list — we’ll be in touch.</span></div>';
+    }
+  }
 });
 document.addEventListener('input',function(e){
   if(e.target.id==='fQuery'){ state.filters.q=e.target.value; refreshMarkers(); document.getElementById('browseList').innerHTML=browseListHTML(); }
