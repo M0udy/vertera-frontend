@@ -327,7 +327,8 @@ function fetchListings(){
   fetch(API+'/properties')
     .then(function(r){return r.json();})
     .then(function(d){
-      if(Array.isArray(d)){state.listings=d;}
+      var arr=Array.isArray(d)?d:(Array.isArray(d&&d.properties)?d.properties:[]);
+      if(arr.length) state.listings=arr;
       state.listingsLoaded=true; state.listingsLoading=false;
       if(state.view==='browse') render();
     })
