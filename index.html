@@ -169,7 +169,7 @@ function listingData(){
     mk('Owner Identity',sel.face+'%',sel.face,'Seller ID and face matched to the registered title holder.'),
     mk('Satellite Imagery',sel.sat+'%',sel.sat,'Building footprint and plot boundaries confirmed from orbit.'),
     mk('Rules Engine',rulesPassed,rulesPct,'Twelve automated fraud rules across price, ownership and documents.'),
-    mk('AI Reasoning',aiText,aiVal,'Advanced reasoning weighs every signal into a single risk verdict.'),
+    mk('Risk Reasoning',aiText,aiVal,'Advanced reasoning weighs every signal into a single risk verdict.'),
     mk('NSDI Cadastre',cadText,cadVal,'Boundaries cross-checked against the official national cadastre.'),
   ];
   var riskLabel=sel.kind==='verified'?'Low risk \u00B7 Verified':(sel.kind==='review'?'Caution \u00B7 Review advised':'High risk \u00B7 Flagged');
@@ -178,7 +178,7 @@ function listingData(){
 
 var buyerPlans=[
   {name:'Free',price:'K0',per:'',features:['Browse all listings','Save properties','Message sellers','Risk colour indicator only'],cta:'Get Started — Free',bg:'#fff',fg:'#16131F',border:'#ece5d7',tag:'#9C7A47',muted:'#6f6a60',check:'#16A34A',btnBg:'#16131F',btnFg:'#fff',act:'go:signin'},
-  {name:'Premium',price:'K1,500',per:'/month',features:['Everything in Free','Full fraud score (0\u2013100)','All 6 verification layers','Downloadable PDF report','Compare up to 5 properties','Real-time fraud alerts'],cta:'Go Premium',bg:'#16131F',fg:'#fff',border:'#16131F',tag:'#d8c6a8',muted:'rgba(255,255,255,0.66)',check:'#7CCF9A',btnBg:'#fff',btnFg:'#16131F',act:'checkout:premium'},
+  {name:'Premium',price:'K1,500',per:'/month',features:['Everything in Free','Full fraud score (0\u2013100)','All 6 verification layers','Downloadable PDF fraud report','Fraud verdict on every listing','Compare up to 5 properties','Real-time fraud alerts'],cta:'Go Premium',bg:'#16131F',fg:'#fff',border:'#16131F',tag:'#d8c6a8',muted:'rgba(255,255,255,0.66)',check:'#7CCF9A',btnBg:'#fff',btnFg:'#16131F',act:'checkout:premium'},
 ];
 var sellerPlans=[
   {name:'7-day Boost',price:'K1,000',per:'7 days',features:['Top placement in all search results','3× more views than organic listings','Listing surfaced in buyer alerts','Ideal for quick, straightforward sales'],cta:'Boost listing',bg:'#fff',fg:'#16131F',border:'#ece5d7',tag:'#9C7A47',muted:'#6f6a60',check:'#16A34A',btnBg:'#16131F',btnFg:'#fff',act:'checkout:boost-basic'},
@@ -474,7 +474,7 @@ function viewHome(){
   +'<div aria-hidden="true" style="position:absolute;left:0;top:0;width:100%;height:1200px;z-index:1;pointer-events:none;overflow:hidden;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 90%);mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 90%)"><img src="hero-clouds.png" alt="" style="position:absolute;left:-6%;top:0;width:112%;height:100%;object-fit:cover;object-position:center top;animation:vtCloudA 60s ease-in-out infinite alternate"></div>'
   +'<header style="position:relative;z-index:5;padding-bottom:clamp(40px,8vh,110px);display:flex;flex-direction:column;align-items:center"><div style="position:relative;z-index:5;text-align:center;padding:0 24px;margin-top:clamp(120px,17vh,210px);max-width:1200px">'
   +'<h1 data-reveal style="font-family:'+SG+';font-weight:800;font-size:clamp(54px,10vw,148px);line-height:0.9;letter-spacing:-0.045em;background:linear-gradient(96deg,#8e8a99 0%,#16131F 58%);-webkit-background-clip:text;background-clip:text;color:transparent">Find Land<br>You Can Trust</h1>'
-  +'<p data-reveal style="margin-top:26px;font-size:clamp(17px,1.5vw,21px);font-weight:500;line-height:1.5;color:#3a3645;max-width:560px;margin-left:auto;margin-right:auto"><span style="color:#16131F;font-weight:600">Verify before you buy.</span> AI-powered fraud detection for property. We check the deed, the owner, and the land.</p>'
+  +'<p data-reveal style="margin-top:26px;font-size:clamp(17px,1.5vw,21px);font-weight:500;line-height:1.5;color:#3a3645;max-width:560px;margin-left:auto;margin-right:auto"><span style="color:#16131F;font-weight:600">Verify before you buy.</span> Independent fraud detection for property. We check the deed, the owner, and the land.</p>'
   +'<div data-reveal style="margin-top:38px"><button data-act="go:browse" style="display:inline-flex;align-items:center;gap:12px;height:60px;padding:0 10px 0 30px;background:#16131F;color:#fff;border:none;border-radius:100px;font-size:17px;font-weight:600;cursor:pointer">Find properties<span style="width:38px;height:38px;border-radius:50%;background:#fff;color:#16131F;display:inline-flex;align-items:center;justify-content:center;font-size:18px">\u2192</span></button></div>'
   +'</div></header>'
   +'<section style="background:transparent;padding:36px 32px 120px;position:relative;z-index:5"><div style="max-width:1320px;margin:0 auto"><div class="r-stack" style="display:grid;grid-template-columns:1fr 2.1fr;gap:40px;align-items:start"><div data-reveal style="font-size:14px;font-weight:600;color:#16131F;padding-top:10px">Why Vertera</div><h2 data-reveal style="font-family:'+SG+';font-weight:700;font-size:clamp(28px,3.6vw,52px);line-height:1.08;letter-spacing:-0.03em"><span style="color:#16131F">Your money\u2019s on the line. Don\u2019t just buy a plot — verify it first.</span> <span style="color:#bcb8c6">We check the title deed, the real owner, and the land itself before you commit to purchase.</span></h2></div>'
@@ -533,7 +533,7 @@ function planCard(pl,big){
 }
 function viewPricing(){
   var faq=faqs.map(function(qa){return '<div style="padding:26px 4px;border-top:1px solid #e5ddcf"><div style="font-family:'+SG+';font-weight:600;font-size:clamp(17px,1.7vw,21px);letter-spacing:-0.01em;color:#16131F">'+qa.q+'</div><p style="margin-top:12px;font-size:clamp(15px,1.4vw,17px);line-height:1.6;color:#5b5650;max-width:680px">'+qa.a+'</p></div>';}).join('');
-  var creditFeats=['Full 6-layer AI fraud analysis on the property','AI verdict — Safe, Risky, or Fraudulent — with full reasoning','Seller identity cross-reference & KYC status check','Complete evidence breakdown, layer by layer','Downloadable PDF you can save, print, or share','Automatic re-check whenever the listing changes'];
+  var creditFeats=['Full 6-layer fraud analysis on the property','Independent fraud verdict — Safe, Risky, or Fraudulent','Seller identity & KYC status check','Complete evidence breakdown, layer by layer','Specific red flags — see exactly which rules triggered','Full fraud score history for the property'];
   var creditFeatHtml=creditFeats.map(function(f){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-top:1px solid rgba(255,255,255,0.1)"><span style="color:#7CCF9A;font-size:15px;flex-shrink:0;margin-top:2px">\u2713</span><span style="font-size:14.5px;color:rgba(255,255,255,0.84);line-height:1.45">'+f+'</span></div>';}).join('');
   return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh">'
   +'<section style="max-width:1200px;margin:0 auto;padding:90px 32px 30px;text-align:center"><div style="font-size:14px;font-weight:600;color:#9C7A47">Pricing</div><h1 style="margin-top:16px;font-family:'+SG+';font-weight:800;font-size:clamp(40px,6vw,84px);line-height:0.98;letter-spacing:-0.04em;color:#16131F">Pay for certainty,<br><span style="color:#bcb8c6">not for hope.</span></h1><p style="margin:24px auto 0;max-width:560px;font-size:clamp(16px,1.5vw,20px);line-height:1.55;color:#3a3645">Browsing verified listings is always free. Pay only when you need a full fraud report or want to list and sell.</p></section>'
@@ -682,7 +682,7 @@ function viewSettings(){
     var credits=(u.report_credits||0);
     var tier2=(u.subscription_tier||'free');
     var tierLabel2={free:'Free',buyer:'Premium · Buyers',professional:'Professional',enterprise:'Enterprise'}[tier2]||tier2;
-    var creditFeatures=['Full 6-layer fraud analysis on any listing','Complete evidence breakdown with supporting data','AI-generated verdict — Safe, Risky, or Fraudulent','Seller identity cross-reference & KYC check','Downloadable PDF report you can share or print','Automatic re-check if the listing changes'];
+    var creditFeatures=['Full 6-layer fraud analysis on any listing','Independent fraud verdict — Safe, Risky, or Fraudulent','Seller identity & KYC status check','Complete evidence breakdown, layer by layer','Specific red flags — see exactly which rules triggered','Full fraud score history for the property'];
     panel='<div style="display:flex;flex-direction:column;gap:18px">'
       +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px">'
       +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">'
@@ -841,7 +841,7 @@ function viewCreateProperty(){
   return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:680px;margin:0 auto;padding:40px 24px 90px">'
     +'<a data-act="go:sellers" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">← Back</a>'
     +'<h1 style="margin-top:16px;font-family:'+SG+';font-weight:800;font-size:clamp(28px,4vw,42px);letter-spacing:-0.03em;color:#16131F">List a property</h1>'
-    +'<p style="margin-top:8px;font-size:15px;color:#6f6a60">Fill in the details below. Our AI fraud engine will score your listing automatically.</p>'
+    +'<p style="margin-top:8px;font-size:15px;color:#6f6a60">Fill in the details below. Our fraud engine will score your listing automatically.</p>'
     +'<div id="createPropForm" style="margin-top:32px;display:flex;flex-direction:column;gap:18px">'
     +'<div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Title *</label><input id="cpTitle" placeholder="e.g. 3 Bed House in Parkview" style="'+inS+'"></div>'
     +'<div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Location *</label><input id="cpLocation" placeholder="e.g. Parkview, Lusaka" style="'+inS+'"></div>'
