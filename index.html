@@ -658,7 +658,7 @@ document.addEventListener('click',function(e){
     var inp=document.getElementById('phoneLocal');
     var local=inp?inp.value.trim().replace(/\s/g,''):'';
     if(!local){alert('Please enter your phone number.');return;}
-    state.authPhone='+260'+local;
+    state.authPhone='+260'+local; sessionStorage.setItem('vt_authPhone',state.authPhone);
     el.disabled=true; el.textContent='Sending…';
     fetch(API+'/auth/request-otp',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:state.authPhone})})
       .then(function(r){return r.json();})
@@ -669,6 +669,7 @@ document.addEventListener('click',function(e){
       .catch(function(){el.disabled=false;el.textContent='Send Code';alert('Failed to send code. Check your number and try again.');});
   }
   else if(cmd==='verifyotp'){
+    if(!state.authPhone){state.authPhone=sessionStorage.getItem('vt_authPhone')||'';}
     var boxes=document.querySelectorAll('[inputmode="numeric"]');
     var otp=Array.from(boxes).map(function(b){return b.value;}).join('');
     if(otp.length<6){alert('Please enter the full 6-digit code.');return;}
