@@ -307,19 +307,23 @@ function renderNav(){
   else if(state.user&&state.user.phone){initials=state.user.phone.replace(/\D/g,'').slice(-2);}
   var authDesktop=authed
     ?'<a data-act="go:settings" style="font-size:15px;font-weight:500;color:#16131F;padding:9px 13px;border-radius:100px;cursor:pointer">Account</a>'
-     +'<div data-act="go:settings" style="margin-left:4px;width:38px;height:38px;border-radius:50%;background:#534AB7;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-family:'+SG+';font-weight:700;font-size:14px;cursor:pointer">'+initials+'</div>'
     :'<a data-act="go:signin" style="font-size:15px;font-weight:500;color:#16131F;padding:9px 13px;border-radius:100px;cursor:pointer">Sign in</a>';
   var authMobile=authed
     ?'<a data-act="go:settings" style="padding:14px 4px;font-size:17px;font-weight:500;color:#16131F;border-bottom:1px solid #f0ece2;cursor:pointer">Account</a>'
      +'<a data-act="signout" style="padding:14px 4px;font-size:17px;font-weight:500;color:#B91C1C;cursor:pointer">Sign out</a>'
     :'<a data-act="go:signin" style="padding:14px 4px;font-size:17px;font-weight:500;color:#16131F;cursor:pointer">Sign in</a>';
+  var avatarBtn=authed
+    ?'<div data-act="go:settings" style="width:38px;height:38px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'+SG+';font-weight:700;font-size:14px;cursor:pointer;flex-shrink:0">'+initials+'</div>'
+    :'';
   document.getElementById('nav').innerHTML=
   '<div class="r-navrow" style="max-width:1320px;margin:0 auto;height:74px;padding:0 32px;display:flex;align-items:center;justify-content:space-between;gap:24px">'
   +'<a data-act="go:home" style="display:flex;align-items:center;gap:9px;cursor:pointer"><img src="logo-purple.png" width="38" height="38" alt="Vertera"><span style="font-family:'+SG+';font-size:23px;font-weight:700;letter-spacing:-0.02em">Vertera</span></a>'
   +'<div class="r-navlinks" style="display:flex;align-items:center;gap:2px">'+links+authDesktop
   +'<button data-act="go:browse" style="margin-left:8px;display:inline-flex;align-items:center;gap:10px;height:46px;padding:0 8px 0 22px;background:#16131F;color:#fff;border:none;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Find properties<span style="width:30px;height:30px;border-radius:50%;background:#fff;color:#16131F;display:inline-flex;align-items:center;justify-content:center;font-size:15px">\u2192</span></button>'
   +'</div>'
-  +'<button class="r-burger" data-act="menu" aria-label="Menu" style="width:44px;height:44px;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:#16131F"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg></button>'
+  +'<div style="display:flex;align-items:center;gap:8px">'+avatarBtn
+  +'<button class="r-burger" data-act="menu" aria-label="Menu" style="width:44px;height:44px;display:flex;align-items:center;justify-content:center;background:none;border:none;cursor:pointer;color:#16131F"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"></path></svg></button>'
+  +'</div>'
   +'</div>'
   +'<div class="r-mobile-menu'+(state.menuOpen?' open':'')+'" style="position:absolute;top:100%;left:0;right:0;background:#fff;border-bottom:1px solid #ece5d7;box-shadow:0 14px 32px rgba(0,0,0,0.09);flex-direction:column;padding:10px 18px 20px;z-index:99">'+mlinks+authMobile+'</div>';
 }
@@ -527,12 +531,17 @@ function viewCheckout(){
 }
 
 function viewSettings(){
+  if(!state.token){return '<div class="vt-page" style="padding-top:74px;min-height:100vh;display:flex;align-items:center;justify-content:center"><div style="text-align:center"><p style="font-size:16px;color:#6f6a60">You need to sign in to view your account.</p><button data-act="go:signin" style="margin-top:16px;height:50px;padding:0 32px;border:none;background:#534AB7;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Sign in</button></div></div>';}
+  var u=state.user||{};
+  var uInitials='?';
+  if(u.name){uInitials=u.name.trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();}
+  else if(u.phone){uInitials=u.phone.replace(/\D/g,'').slice(-2);}
   var t=state.setTab;
   var nav=settingsTabs.map(function(x){var on=t===x.key;return '<a data-act="settab:'+x.key+'" style="font-size:15px;font-weight:'+(on?'600':'500')+';color:'+(on?'#16131F':'#6f6a60')+';background:'+(on?'#fff':'transparent')+';border:1px solid '+(on?'#ece5d7':'transparent')+';padding:12px 15px;border-radius:11px;cursor:pointer">'+x.label+'</a>';}).join('');
   var panel='';
   var inS='height:50px;border:1px solid #e2dccb;border-radius:12px;padding:0 15px;font-size:15px;color:#16131F;outline:none;background:#fff';
   if(t==='profile'){
-    panel='<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Profile</h3><div style="margin-top:22px;display:flex;align-items:center;gap:16px"><div style="width:64px;height:64px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'+SG+';font-weight:700;font-size:23px;flex-shrink:0">GP</div><button style="height:42px;padding:0 18px;border:1px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer">Change photo</button></div><div style="margin-top:24px;display:flex;flex-direction:column;gap:16px;max-width:420px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Full name</label><input value="'+esc(state.profile.name)+'" style="'+inS+'"></div><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Email</label><input value="'+esc(state.profile.email)+'" style="'+inS+'"></div><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Phone</label><input value="'+esc(state.profile.phone)+'" style="'+inS+'"></div></div><button style="margin-top:24px;height:48px;padding:0 26px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:14.5px;font-weight:600;cursor:pointer">Save changes</button></div>';
+    panel='<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Profile</h3><div style="margin-top:22px;display:flex;align-items:center;gap:16px"><div style="width:64px;height:64px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'+SG+';font-weight:700;font-size:23px;flex-shrink:0">'+uInitials+'</div></div><div style="margin-top:24px;display:flex;flex-direction:column;gap:16px;max-width:420px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Full name</label><input id="profName" value="'+esc(u.name||'')+'" placeholder="Your name" style="'+inS+'"></div><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Email</label><input id="profEmail" value="'+esc(u.email||'')+'" placeholder="your@email.com" type="email" style="'+inS+'"></div><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Phone</label><input value="'+esc(u.phone||'')+'" readonly style="'+inS+';background:#FAF7F1;color:#8b857a"></div></div><button data-act="saveprofile" style="margin-top:24px;height:48px;padding:0 26px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:14.5px;font-weight:600;cursor:pointer">Save changes</button></div>';
   } else if(t==='notif'){
     var rows=notifDefs.map(function(r){var on=state.notif[r.key];return '<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid #f0ebdf"><div style="min-width:0"><div style="font-size:15.5px;font-weight:600;color:#16131F">'+r.label+'</div><div style="font-size:13px;color:#8b857a;margin-top:2px">'+r.desc+'</div></div>'+toggle('notiftog:'+r.key,on)+'</div>';}).join('');
     panel='<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Notifications</h3><div style="margin-top:14px;display:flex;flex-direction:column">'+rows+'</div></div>';
@@ -694,6 +703,20 @@ document.addEventListener('click',function(e){
   else if(cmd==='signout'){
     state.token=null; state.user=null; localStorage.removeItem('vt_token'); sessionStorage.removeItem('vt_authPhone');
     go('home'); renderNav();
+  }
+  else if(cmd==='saveprofile'){
+    var nameEl=document.getElementById('profName'); var emailEl=document.getElementById('profEmail');
+    var nm=nameEl?nameEl.value.trim():''; var em=emailEl?emailEl.value.trim():'';
+    if(!state.token){return;}
+    el.disabled=true; el.textContent='Saving…';
+    fetch(API+'/auth/me',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},body:JSON.stringify({name:nm||null,email:em||null})})
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.id){state.user=d;renderNav();el.textContent='Saved!';}
+        else{el.textContent='Save changes';alert((d.error&&d.error.message)||'Failed to save.');}
+        el.disabled=false;
+      })
+      .catch(function(){el.disabled=false;el.textContent='Save changes';alert('Failed to save. Try again.');});
   }
   else if(cmd==='sub'){
     var i=document.getElementById('subEmail');
