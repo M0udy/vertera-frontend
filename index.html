@@ -550,9 +550,18 @@ function viewListing(){
 function viewCheckout(){
   var p=state.checkout.plan||checkoutPlans.report;
   var m=state.checkout.method;
-  var ref='VT-2026-'+(state.selectedId||'PAY').toUpperCase()+'-4821';
+  var ref=state.checkout.momoRef||('VT-2026-'+(state.selectedId||'PAY').toUpperCase()+'-4821');
+  var isMomo=!!state.checkout.momoPhone;
   if(state.checkout.done){
-    return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:1020px;margin:0 auto;padding:34px 32px 90px"><a data-act="go:pricing" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">\u2190 Back</a><div style="max-width:520px;margin:60px auto 0;background:#fff;border:1px solid #ece5d7;border-radius:20px;padding:48px 40px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:#DCFCE7;display:flex;align-items:center;justify-content:center;margin:0 auto"><span style="font-size:40px;color:#16A34A">\u2713</span></div><h2 style="margin-top:24px;font-family:'+SG+';font-weight:800;font-size:28px;letter-spacing:-0.02em;color:#16131F">Payment successful</h2><p style="margin-top:12px;font-size:15px;line-height:1.6;color:#6f6a60">Your payment for <b style="color:#16131F">'+p.name+'</b> went through. A receipt is on its way to your email.</p><div style="margin-top:22px;background:#FAF7F1;border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Reference</span><span style="font-weight:600;color:#16131F;font-family:ui-monospace,Menlo,monospace">'+ref+'</span></div><div style="margin-top:14px;background:#FAF7F1;border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Amount paid</span><span style="font-family:'+SG+';font-weight:700;color:#16131F">'+p.price+'</span></div><div style="margin-top:28px;display:flex;flex-direction:column;gap:11px"><button data-act="go:settings" style="width:100%;height:52px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Go to your account</button><button data-act="go:browse" style="width:100%;height:52px;border:1px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Back to listings</button></div></div></div></div>';
+    var iconBg=isMomo?'#FEF3C7':'#DCFCE7';
+    var iconColor=isMomo?'#D97706':'#16A34A';
+    var iconChar=isMomo?'\u231b':'\u2713';
+    var doneTitle=isMomo?'Prompt sent \u2014 check your phone':'Payment successful';
+    var doneBody=isMomo
+      ?'A payment prompt was sent to <b style="color:#16131F">+'+state.checkout.momoPhone+'</b>. Open your '+( state.checkout.momoCorrespondent==='MTN_MOMO_ZMB'?'MTN MoMo':'Airtel Money')+' app or dial the USSD code to approve.'
+      :'Your payment for <b style="color:#16131F">'+p.name+'</b> went through. A receipt is on its way to your email.';
+    var refLabel=isMomo?'PawaPay reference':'Reference';
+    return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:1020px;margin:0 auto;padding:34px 32px 90px"><a data-act="go:pricing" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">\u2190 Back</a><div style="max-width:520px;margin:60px auto 0;background:#fff;border:1px solid #ece5d7;border-radius:20px;padding:48px 40px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:'+iconBg+';display:flex;align-items:center;justify-content:center;margin:0 auto"><span style="font-size:40px;color:'+iconColor+'">'+iconChar+'</span></div><h2 style="margin-top:24px;font-family:'+SG+';font-weight:800;font-size:28px;letter-spacing:-0.02em;color:#16131F">'+doneTitle+'</h2><p style="margin-top:12px;font-size:15px;line-height:1.6;color:#6f6a60">'+doneBody+'</p><div style="margin-top:22px;background:#FAF7F1;border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">'+refLabel+'</span><span style="font-weight:600;color:#16131F;font-family:ui-monospace,Menlo,monospace">'+ref+'</span></div><div style="margin-top:14px;background:#FAF7F1;border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Amount</span><span style="font-family:'+SG+';font-weight:700;color:#16131F">'+p.price+'</span></div><div style="margin-top:28px;display:flex;flex-direction:column;gap:11px"><button data-act="go:settings" style="width:100%;height:52px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Go to your account</button><button data-act="go:browse" style="width:100%;height:52px;border:1px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Back to listings</button></div></div></div></div>';
   }
   var methods=checkoutMethods.map(function(x){var on=m===x.key;return '<div data-act="comethod:'+x.key+'" style="display:flex;align-items:center;gap:13px;padding:15px 16px;border:1.5px solid '+(on?'#16131F':'#e2dccb')+';background:'+(on?'#FAF7F1':'#fff')+';border-radius:13px;cursor:pointer"><span style="width:20px;height:20px;border-radius:50%;border:2px solid '+(on?'#16131F':'#cfc8b8')+';display:inline-flex;align-items:center;justify-content:center;flex-shrink:0"><span style="width:9px;height:9px;border-radius:50%;background:'+(on?'#16131F':'transparent')+'"></span></span><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;color:#16131F">'+x.label+'</div><div style="font-size:12.5px;color:#8b857a;margin-top:1px">'+x.sub+'</div></div></div>';}).join('');
   var form='';
@@ -563,7 +572,7 @@ function viewCheckout(){
     form='<div style="margin-top:22px;background:#FAF7F1;border-radius:12px;padding:18px 20px;display:flex;flex-direction:column;gap:12px"><div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Bank</span><span style="font-weight:600;color:#16131F">Zanaco \u00B7 Vertera Ltd</span></div><div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Account</span><span style="font-weight:600;color:#16131F">0123 4567 8901</span></div><div style="display:flex;justify-content:space-between;font-size:14px"><span style="color:#8b857a">Reference</span><span style="font-weight:600;color:#9C7A47;font-family:ui-monospace,Menlo,monospace">'+ref+'</span></div><div style="font-size:12.5px;color:#8b857a;border-top:1px solid #e8e1d2;padding-top:11px">Use the reference above so we can match your transfer. Access unlocks once funds clear (1\u20132 business days).</div></div>';
   } else {
     var lbl=(checkoutMethods.filter(function(x){return x.key===m;})[0]||{}).label||'';
-    form='<div style="margin-top:22px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">'+lbl+' number</label><div style="display:flex;align-items:center;height:50px;border:1px solid #e2dccb;border-radius:12px;background:#fff;overflow:hidden"><div style="padding:0 13px;height:100%;display:flex;align-items:center;border-right:1px solid #ece5d7;font-size:15px;color:#16131F;font-weight:500;background:#FAF7F1">\uD83C\uDDFF\uD83C\uDDF2 +260</div><input placeholder="97 000 0000" type="tel" style="flex:1;min-width:0;height:100%;border:none;outline:none;padding:0 14px;font-size:15px;color:#16131F;background:none"></div></div><div style="display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5;color:#6f6a60"><span style="color:#9C7A47;flex-shrink:0">\u24D8</span><span>You\u2019ll get a prompt on your phone to approve the payment with your wallet PIN.</span></div></div>';
+    form='<div style="margin-top:22px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">'+lbl+' number</label><div style="display:flex;align-items:center;height:50px;border:1px solid #e2dccb;border-radius:12px;background:#fff;overflow:hidden"><div style="padding:0 13px;height:100%;display:flex;align-items:center;border-right:1px solid #ece5d7;font-size:15px;color:#16131F;font-weight:500;background:#FAF7F1">\uD83C\uDDFF\uD83C\uDDF2 +260</div><input id="mmPhone" placeholder="97 000 0000" type="tel" style="flex:1;min-width:0;height:100%;border:none;outline:none;padding:0 14px;font-size:15px;color:#16131F;background:none"></div></div><div style="display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5;color:#6f6a60"><span style="color:#9C7A47;flex-shrink:0">\u24D8</span><span>You\u2019ll get a prompt on your phone to approve the payment with your wallet PIN.</span></div></div>';
   }
   var perLabel=p.kind==='subscription'?'Billed monthly \u00B7 cancel anytime':(p.kind==='boost'?'One-time listing boost':'One-time payment');
   return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:1020px;margin:0 auto;padding:34px 32px 90px"><a data-act="go:pricing" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">\u2190 Back</a><h1 style="margin-top:18px;font-family:'+SG+';font-weight:800;font-size:clamp(30px,4vw,46px);letter-spacing:-0.03em;color:#16131F">Checkout</h1>'
@@ -750,7 +759,48 @@ document.addEventListener('click',function(e){
   else if(cmd==='menu'){ state.menuOpen=!state.menuOpen; renderNav(); }
   else if(cmd==='open'){ openListing(arg); }
   else if(cmd==='checkout'){ openCheckout(arg); }
-  else if(cmd==='pay'){ state.checkout.done=true; render(); }
+  else if(cmd==='pay'){
+    if(!state.token){alert('Please sign in first.');return;}
+    var p=state.checkout.plan||checkoutPlans.report;
+    var m=state.checkout.method;
+    // Card / bank / Zamtel: not yet live via API — show placeholder success
+    if(m==='card'||m==='bank'||m==='zamtel'){state.checkout.done=true;render();return;}
+    // Boost plans not yet in PawaPay catalogue
+    if(p.kind==='boost'){alert('Listing boosts via mobile money are coming soon. Please use card or bank transfer for now.');return;}
+    // MTN / Airtel → PawaPay push
+    var phoneEl=document.getElementById('mmPhone');
+    var rawPhone=(phoneEl&&phoneEl.value.trim())||'';
+    if(!rawPhone){alert('Please enter your '+(m==='mtn'?'MTN':'Airtel')+' number.');return;}
+    var phone=rawPhone.replace(/\s+/g,'').replace(/^\+/,'').replace(/^260/,'260').replace(/^0/,'260');
+    if(!/^260\d{9}$/.test(phone)){alert('Please enter a valid Zambian number — e.g. 97 000 0000.');return;}
+    var correspondent=m==='mtn'?'MTN_MOMO_ZMB':'AIRTEL_OAPI_ZMB';
+    var purpose='buyer';
+    if(p.kind==='report') purpose='report';
+    else if(p.name&&p.name.indexOf('Seller')!==-1) purpose='seller';
+    else if(p.name&&p.name.indexOf('Bank')!==-1) purpose='bank';
+    var body={phone:phone,correspondent:correspondent,purpose:purpose};
+    if(purpose==='report'&&state.selectedId) body.property_id=state.selectedId;
+    el.disabled=true; el.textContent='Sending prompt…';
+    fetch(API+'/payments/deposit',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
+      body:JSON.stringify(body)
+    })
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d.depositId||d.paymentId){
+        state.checkout.momoPhone=phone;
+        state.checkout.momoRef=d.depositId||d.paymentId;
+        state.checkout.momoCorrespondent=correspondent;
+        state.checkout.done=true;
+        render();
+      } else {
+        el.disabled=false; el.textContent='Pay '+p.price;
+        alert((d.error&&d.error.message)||'Could not initiate payment. Please try again.');
+      }
+    })
+    .catch(function(){el.disabled=false; el.textContent='Pay '+(p&&p.price||''); alert('Connection error. Please try again.');});
+  }
   else if(cmd==='comethod'){ state.checkout.method=arg; render(); }
   else if(cmd==='settab'){ state.setTab=arg; render(); }
   else if(cmd==='admintab'){ state.adminTab=arg; render(); }
