@@ -679,13 +679,25 @@ function viewSettings(){
     var credits=(u.report_credits||0);
     var tier2=(u.subscription_tier||'free');
     var tierLabel2={free:'Free',buyer:'Premium · Buyers',professional:'Professional',enterprise:'Enterprise'}[tier2]||tier2;
+    var creditFeatures=['Full 6-layer fraud analysis on any listing','Complete evidence breakdown with supporting data','AI-generated verdict — Safe, Risky, or Fraudulent','Seller identity cross-reference & KYC check','Downloadable PDF report you can share or print','Automatic re-check if the listing changes'];
     panel='<div style="display:flex;flex-direction:column;gap:18px">'
-      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Report credits</h3>'
-      +'<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;background:#FAF7F1;border-radius:14px;padding:20px 24px">'
-      +'<div><div style="font-size:13px;color:#8b857a;font-weight:500;text-transform:uppercase;letter-spacing:0.05em">Available credits</div>'
-      +'<div style="margin-top:4px;font-family:'+SG+';font-weight:800;font-size:36px;letter-spacing:-0.02em;color:#16131F">'+credits+'</div>'
-      +'<div style="font-size:13px;color:#8b857a;margin-top:4px">Each credit unlocks one full fraud report (K2,000 value).</div></div></div>'
-      +(credits===0?'<button data-act="checkout:report" style="margin-top:18px;height:50px;padding:0 28px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Buy report credits</button>':'')
+      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px">'
+      +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">'
+      +'<h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Report credits</h3>'
+      +'<div style="background:#FAF7F1;border-radius:12px;padding:10px 18px;text-align:right;flex-shrink:0">'
+      +'<div style="font-size:11px;color:#8b857a;font-weight:600;text-transform:uppercase;letter-spacing:0.06em">Balance</div>'
+      +'<div style="font-family:'+SG+';font-weight:800;font-size:34px;letter-spacing:-0.02em;color:#16131F;line-height:1">'+credits+'</div>'
+      +'<div style="font-size:12px;color:#8b857a;margin-top:2px">credit'+(credits===1?'':'s')+'</div>'
+      +'</div></div>'
+      +'<p style="margin-top:6px;font-size:14.5px;color:#5a5347;line-height:1.55">A report credit lets you unlock the full fraud analysis for any property — one credit per listing. Each credit is worth <strong>K2,000</strong> of investigative work, delivered instantly.</p>'
+      +'<div style="margin-top:20px;display:flex;flex-direction:column;gap:0">'
+      +'<div style="font-size:12px;font-weight:700;color:#8b857a;text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px">What one credit unlocks</div>'
+      +creditFeatures.map(function(f){return '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-top:1px solid #f5f0e8"><span style="color:#15803D;font-size:15px;flex-shrink:0;margin-top:1px">✓</span><span style="font-size:14px;color:#3a3530;line-height:1.4">'+f+'</span></div>';}).join('')
+      +'</div>'
+      +'<div style="margin-top:22px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+      +'<button data-act="checkout:report" style="height:50px;padding:0 28px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">'+(credits>0?'Buy more credits':'Buy a report credit — K2,000')+'</button>'
+      +(credits>0?'<span style="font-size:13px;color:#8b857a">K2,000 per credit</span>':'')
+      +'</div>'
       +'</div>'
       +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Active plan</h3>'
       +'<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;background:#FAF7F1;border-radius:14px;padding:20px 24px">'
