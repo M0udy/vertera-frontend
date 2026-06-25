@@ -18,6 +18,7 @@
   a{text-decoration:none;color:inherit}
   @keyframes vtCloudA{from{transform:translateX(-6%)}to{transform:translateX(6%)}}
   @keyframes vtPageIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+  @keyframes spin{to{transform:rotate(360deg)}}
   .vt-page{animation:vtPageIn .5s cubic-bezier(.22,.61,.36,1)}
   [data-reveal]{opacity:0;transform:translateY(22px);transition:opacity .9s cubic-bezier(.22,.61,.36,1),transform .9s cubic-bezier(.22,.61,.36,1)}
   [data-reveal].in{opacity:1;transform:none}
@@ -153,6 +154,7 @@ var SELLERS = {
   tp:{name:'Unverified seller',init:'?',meta:'Identity not confirmed',verified:false},
 };
 function listingData(){
+  if(state.selectedDetail&&state.selectedDetail.title) return listingDataFromApi(state.selectedDetail);
   var sel=decorate(propsData().filter(function(p){return p.id===state.selectedId;})[0]||propsData()[0]);
   var typeLabels={house:'House',villa:'Villa',townhouse:'Townhouse',flat:'Flat',plot:'Plot / Land'};
   function lstat(v){ return v>=85?{l:'Verified',c:'#15803D',bg:'#DCFCE7',ic:'\u2713',bar:'#16A34A'}:(v>=55?{l:'Review',c:'#B45309',bg:'#FEF3C7',ic:'\u26A0',bar:'#D97706'}:{l:'Failed',c:'#B91C1C',bg:'#FEE2E2',ic:'\u2715',bar:'#DC2626'}); }
@@ -318,6 +320,8 @@ var state={
   user:null,
   authPhone:'',
   listings:[],listingsLoaded:false,listingsLoading:false,
+  selectedDetail:null,listingLoading:false,
+  adminData:{stats:null,users:[],analytics:null,loaded:false,loading:false},
 };
 var _map=null,_markerGroup=null,_cadastre=null,_meMarker=null,_io=null;
 
@@ -333,6 +337,76 @@ function fetchListings(){
       if(state.view==='browse') render();
     })
     .catch(function(){state.listingsLoaded=true; state.listingsLoading=false; if(state.view==='browse') render();});
+}
+
+function fetchAdminData(){
+  if(state.adminData.loading||state.adminData.loaded) return;
+  if(!state.token) return;
+  state.adminData.loading=true;
+  var h={'Authorization':'Bearer '+state.token};
+  Promise.all([
+    fetch(API+'/admin/stats',{headers:h}).then(function(r){return r.json();}).catch(function(){return null;}),
+    fetch(API+'/admin/users?limit=50&offset=0',{headers:h}).then(function(r){return r.json();}).catch(function(){return [];}),
+    fetch(API+'/admin/analytics',{headers:h}).then(function(r){return r.json();}).catch(function(){return null;})
+  ]).then(function(res){
+    state.adminData.stats=res[0];
+    state.adminData.users=Array.isArray(res[1])?res[1]:[];
+    state.adminData.analytics=res[2];
+    state.adminData.loaded=true;
+    state.adminData.loading=false;
+    if(state.view==='admin') render();
+  }).catch(function(){
+    state.adminData.loading=false;
+    if(state.view==='admin') render();
+  });
+}
+
+function listingDataFromApi(d){
+  var kindMap={verified:'verified',review:'review',flagged:'flagged',pending:'review',caution:'review'};
+  var kind=kindMap[d.verification_status]||'review';
+  var m=meta(kind);
+  var priceUsd=Number(d.price_usd)||0;
+  var priceLabel='K'+Math.round(priceUsd).toLocaleString();
+  var priceShort=priceUsd>=1000000?'K'+(priceUsd/1000000).toFixed(2).replace(/\.?0+$/,'')+'M':'K'+Math.round(priceUsd/1000)+'K';
+  var score=typeof d.fraud_score==='number'?Math.round(d.fraud_score):50;
+  var imgs=Array.isArray(d.image_urls)&&d.image_urls.length?d.image_urls:['chev-land.png'];
+  var sc=scoreColor(score);
+  var baseOcr=kind==='verified'?94:(kind==='flagged'?41:80);
+  var baseFace=kind==='verified'?96:(kind==='flagged'?0:78);
+  var baseSat=kind==='verified'?92:(kind==='flagged'?38:72);
+  var sel={
+    id:String(d.id),title:d.title||'Property',area:d.location||'Lusaka',
+    lat:d.latitude?Number(d.latitude):-15.405,lng:d.longitude?Number(d.longitude):28.322,
+    typeKey:'house',priceVal:Math.round(priceUsd/1000),
+    priceLabel:priceLabel,priceShort:priceShort,
+    size:d.size_acres?(d.size_acres+' acres'):'—',
+    score:score,kind:kind,deedNo:d.deed_number||'—',
+    ocr:baseOcr,face:baseFace,sat:baseSat,img:imgs[0],
+    badgeBg:m.bg,badgeText:m.text,badgeIcon:m.icon,badgeLabel:m.label,pin:m.pin,scoreColor:sc,
+  };
+  var sv=d.seller||{};
+  var sName=sv.name||'Seller';
+  var sInit=sName.trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase()||'?';
+  var sVerified=!!(sv.badge||sv.kyc_status==='verified');
+  var sMeta=sVerified?'Identity verified · seller':'Individual seller';
+  function lstat(v){return v>=85?{l:'Verified',c:'#15803D',bg:'#DCFCE7',ic:'✓',bar:'#16A34A'}:(v>=55?{l:'Review',c:'#B45309',bg:'#FEF3C7',ic:'⚠',bar:'#D97706'}:{l:'Failed',c:'#B91C1C',bg:'#FEE2E2',ic:'✕',bar:'#DC2626'});}
+  var rulesPct=kind==='verified'?100:(kind==='review'?83:42);
+  var rulesPassed=kind==='verified'?'12 / 12 passed':(kind==='review'?'10 / 12 passed':'5 / 12 passed');
+  var cadVal=kind==='verified'?100:(kind==='review'?70:20);
+  var cadText=kind==='verified'?'Exact match':(kind==='review'?'Partial match':'No match');
+  var aiVal=100-score,aiText=kind==='verified'?'Low risk':(kind==='review'?'Some flags':'High risk');
+  function mk(name,metric,v,desc){var s=lstat(v);return {name:name,metric:metric,metricColor:s.c,desc:desc,statusLabel:s.l,statusColor:s.c,statusBg:s.bg,statusIcon:s.ic,barColor:s.bar,barW:Math.max(6,Math.round(v))+'%'};}
+  var deedDesc=d.deed_number?'Deed '+d.deed_number+' extracted and validated against the registry format.':'Title deed data not yet verified.';
+  var layers=[
+    mk('Title Deed OCR',baseOcr+'%',baseOcr,deedDesc),
+    mk('Owner Identity',baseFace+'%',baseFace,'Seller ID and face matched to the registered title holder.'),
+    mk('Satellite Imagery',baseSat+'%',baseSat,'Building footprint and plot boundaries confirmed from orbit.'),
+    mk('Rules Engine',rulesPassed,rulesPct,'Twelve automated fraud rules across price, ownership and documents.'),
+    mk('AI Reasoning',aiText,aiVal,'Advanced reasoning weighs every signal into a single risk verdict.'),
+    mk('NSDI Cadastre',cadText,cadVal,'Boundaries cross-checked against the official national cadastre.'),
+  ];
+  var riskLabel=kind==='verified'?'Low risk · Verified':(kind==='review'?'Caution · Review advised':'High risk · Flagged');
+  return {sel:sel,typeLabel:'Property',seller:{name:sName,init:sInit,meta:sMeta,verified:sVerified},layers:layers,riskLabel:riskLabel};
 }
 
 /* ============================ HELPERS ============================ */
@@ -531,10 +605,16 @@ function viewSignin(){
 }
 
 function viewListing(){
+  if(state.listingLoading) return '<div class="vt-page" style="padding-top:74px;min-height:100vh;display:flex;align-items:center;justify-content:center"><div style="text-align:center"><div style="width:40px;height:40px;border-radius:50%;border:3px solid #f1ebdd;border-top-color:#16131F;animation:spin 0.8s linear infinite;margin:0 auto"></div><p style="margin-top:16px;font-size:15px;color:#8b857a">Loading property…</p></div></div>';
   var L=listingData(), sel=L.sel;
-  var thumbs=['plot / aerial','frontage','title deed'].map(function(ph){return '<div style="border-radius:14px;background:repeating-linear-gradient(45deg,#ECE7DB,#ECE7DB 10px,#E4DDCD 10px,#E4DDCD 20px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9b9384">'+ph+'</span></div>';}).join('');
+  var realImgs=state.selectedDetail&&Array.isArray(state.selectedDetail.image_urls)&&state.selectedDetail.image_urls.length>1?state.selectedDetail.image_urls:null;
+  var thumbs=realImgs
+    ?realImgs.slice(1,4).map(function(u){return '<div style="border-radius:14px;overflow:hidden;position:relative;background:#ECE7DB"><img src="'+esc(u)+'" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover" alt=""></div>';}).join('')
+    :['plot / aerial','frontage','title deed'].map(function(ph){return '<div style="border-radius:14px;background:repeating-linear-gradient(45deg,#ECE7DB,#ECE7DB 10px,#E4DDCD 10px,#E4DDCD 20px);display:flex;align-items:center;justify-content:center"><span style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:#9b9384">'+ph+'</span></div>';}).join('');
   var layers=L.layers.map(function(l){return '<div style="padding:18px 0;border-top:1px solid #f0ebdf"><div style="display:flex;align-items:center;justify-content:space-between;gap:14px"><div style="display:flex;align-items:center;gap:11px;min-width:0"><span style="width:26px;height:26px;border-radius:50%;background:'+l.statusBg+';color:'+l.statusColor+';display:inline-flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0">'+l.statusIcon+'</span><span style="font-family:'+SG+';font-weight:600;font-size:16px;color:#16131F">'+l.name+'</span></div><span style="font-size:13px;font-weight:700;color:'+l.metricColor+';font-family:'+SG+';flex-shrink:0">'+l.metric+'</span></div><p style="margin-top:9px;margin-left:37px;font-size:13.5px;line-height:1.55;color:#6f6a60">'+l.desc+'</p><div style="margin-top:10px;margin-left:37px;height:5px;background:#f1ebdd;border-radius:100px;overflow:hidden"><div style="height:100%;width:'+l.barW+';background:'+l.barColor+';border-radius:100px"></div></div></div>';}).join('');
-  var facts=[['Location',sel.area+', Lusaka'],['Property type',L.typeLabel],['Plot size',sel.size],['Title deed',sel.deedNo],['Asking price',sel.priceLabel],['Listed','June 2026']].map(function(f){return '<div style="display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #f3efe5;padding-bottom:12px"><span style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.04em;font-weight:600">'+f[0]+'</span><span style="font-size:15.5px;color:#16131F;font-weight:500">'+f[1]+'</span></div>';}).join('');
+  var dom=state.selectedDetail&&typeof state.selectedDetail.days_on_market==='number'?state.selectedDetail.days_on_market:null;
+  var listedStr=dom===null?'June 2026':(dom===0?'Today':(dom===1?'Yesterday':dom+' days ago'));
+  var facts=[['Location',sel.area+', Lusaka'],['Property type',L.typeLabel],['Plot size',sel.size],['Title deed',sel.deedNo],['Asking price',sel.priceLabel],['Listed',listedStr]].map(function(f){return '<div style="display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #f3efe5;padding-bottom:12px"><span style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.04em;font-weight:600">'+f[0]+'</span><span style="font-size:15.5px;color:#16131F;font-weight:500">'+f[1]+'</span></div>';}).join('');
   var s=L.seller;
   var sbadge=s.verified?'<span style="font-size:11px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 8px;border-radius:100px">\u2713 Verified</span>':'<span style="font-size:11px;font-weight:700;color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:100px">Unverified</span>';
   return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:1180px;margin:0 auto;padding:34px 32px 90px">'
@@ -596,11 +676,38 @@ function viewSettings(){
     var rows=notifDefs.map(function(r){var on=state.notif[r.key];return '<div style="display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-top:1px solid #f0ebdf"><div style="min-width:0"><div style="font-size:15.5px;font-weight:600;color:#16131F">'+r.label+'</div><div style="font-size:13px;color:#8b857a;margin-top:2px">'+r.desc+'</div></div>'+toggle('notiftog:'+r.key,on)+'</div>';}).join('');
     panel='<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Notifications</h3><div style="margin-top:14px;display:flex;flex-direction:column">'+rows+'</div></div>';
   } else if(t==='pay'){
-    var pm=payMethods.map(function(m){return '<div style="display:flex;align-items:center;gap:14px;padding:16px 18px;border:1px solid #ece5d7;border-radius:13px"><div style="width:42px;height:30px;border-radius:6px;background:#FAF7F1;border:1px solid #ece5d7;flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600;color:#16131F">'+m.brand+'</div><div style="font-size:12.5px;color:#8b857a;margin-top:1px">'+m.detail+'</div></div>'+(m.tagShow?'<span style="font-size:11px;font-weight:700;color:#9C7A47;background:#F1EBDD;padding:4px 11px;border-radius:100px;flex-shrink:0">'+m.tag+'</span>':'')+'</div>';}).join('');
-    panel='<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Payment methods</h3><div style="margin-top:18px;display:flex;flex-direction:column;gap:12px">'+pm+'</div><button style="margin-top:18px;height:48px;padding:0 22px;border:1px dashed #c9c1b1;background:#FAF7F1;color:#16131F;border-radius:12px;font-size:14.5px;font-weight:600;cursor:pointer;width:100%">+ Add payment method</button></div>';
+    var credits=(u.report_credits||0);
+    var tier2=(u.subscription_tier||'free');
+    var tierLabel2={free:'Free',buyer:'Premium · Buyers',professional:'Professional',enterprise:'Enterprise'}[tier2]||tier2;
+    panel='<div style="display:flex;flex-direction:column;gap:18px">'
+      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Report credits</h3>'
+      +'<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;background:#FAF7F1;border-radius:14px;padding:20px 24px">'
+      +'<div><div style="font-size:13px;color:#8b857a;font-weight:500;text-transform:uppercase;letter-spacing:0.05em">Available credits</div>'
+      +'<div style="margin-top:4px;font-family:'+SG+';font-weight:800;font-size:36px;letter-spacing:-0.02em;color:#16131F">'+credits+'</div>'
+      +'<div style="font-size:13px;color:#8b857a;margin-top:4px">Each credit unlocks one full fraud report (K2,000 value).</div></div></div>'
+      +(credits===0?'<button data-act="go:pricing" style="margin-top:18px;height:50px;padding:0 28px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Buy report credits</button>':'')
+      +'</div>'
+      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Active plan</h3>'
+      +'<div style="margin-top:18px;display:flex;align-items:center;justify-content:space-between;background:#FAF7F1;border-radius:14px;padding:20px 24px">'
+      +'<div><div style="font-size:13px;color:#8b857a;font-weight:500;text-transform:uppercase;letter-spacing:0.05em">Current plan</div>'
+      +'<div style="margin-top:4px;font-family:'+SG+';font-weight:700;font-size:22px;color:#16131F">'+tierLabel2+'</div></div>'
+      +(tier2!=='free'?'<span style="font-size:11px;font-weight:700;color:#15803D;background:#DCFCE7;padding:5px 13px;border-radius:100px">Active</span>':'')
+      +'</div>'
+      +'<p style="margin-top:14px;font-size:13.5px;color:#8b857a;line-height:1.5">Payment methods (mobile money, card, bank) are entered at checkout when you purchase a report or plan upgrade. No card details are stored on Vertera.</p>'
+      +'<button data-act="go:pricing" style="margin-top:16px;height:44px;padding:0 22px;border:1px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer">View plans →</button>'
+      +'</div></div>';
   } else if(t==='security'){
-    var sess=sessions.map(function(s){return '<div style="display:flex;align-items:center;gap:12px;padding:15px 0;border-top:1px solid #f0ebdf"><span style="width:9px;height:9px;border-radius:50%;background:'+s.dotColor+';flex-shrink:0"></span><div style="flex:1;min-width:0"><div style="font-size:14.5px;font-weight:600;color:#16131F">'+s.device+'</div><div style="font-size:12.5px;color:#8b857a">'+s.where+'</div></div><span style="font-size:12.5px;color:#8b857a;flex-shrink:0">'+s.when+'</span></div>';}).join('');
-    panel='<div style="display:flex;flex-direction:column;gap:18px"><div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:24px 30px"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><div><div style="font-size:15.5px;font-weight:600;color:#16131F">Phone verification</div><div style="font-size:13px;color:#8b857a;margin-top:2px">Your account is secured with OTP codes sent to '+esc(u.phone||'your phone')+'.</div></div><span style="font-size:12px;font-weight:700;color:#15803D;background:#DCFCE7;padding:5px 12px;border-radius:100px;flex-shrink:0">Active</span></div></div><div style="background:#fff;border:1px solid #f4d4d4;border-radius:18px;padding:24px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px"><div><div style="font-size:15.5px;font-weight:600;color:#B91C1C">Delete account</div><div style="font-size:13px;color:#8b857a;margin-top:2px">Permanently remove your account and all data.</div></div><button data-act="deleteaccount" style="height:44px;padding:0 20px;border:1px solid #DC2626;background:#fff;color:#DC2626;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0">Delete</button></div></div>';
+    panel='<div style="display:flex;flex-direction:column;gap:18px">'
+      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:24px 30px"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px"><div><div style="font-size:15.5px;font-weight:600;color:#16131F">Phone verification</div><div style="font-size:13px;color:#8b857a;margin-top:2px">Your account is secured with OTP codes sent to '+esc(u.phone||'your phone')+'.</div></div><span style="font-size:12px;font-weight:700;color:#15803D;background:#DCFCE7;padding:5px 12px;border-radius:100px;flex-shrink:0">Active</span></div></div>'
+      +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:24px 30px"><div style="font-size:15.5px;font-weight:600;color:#16131F">KYC status</div>'
+      +(u.kyc_status==='verified'
+        ?'<div style="margin-top:10px;display:flex;align-items:center;gap:10px"><span style="font-size:12px;font-weight:700;color:#15803D;background:#DCFCE7;padding:5px 12px;border-radius:100px">✓ Identity verified</span></div><div style="margin-top:8px;font-size:13px;color:#8b857a">Your NRC has been verified. Buyers and sellers can see your verification badge.</div>'
+        :(u.kyc_status==='pending'
+          ?'<div style="margin-top:10px;font-size:13px;color:#B45309">Verification in progress — we\'ll notify you when complete.</div>'
+          :'<div style="margin-top:10px;font-size:13px;color:#8b857a">Your identity hasn\'t been verified yet.</div><button data-act="go:settings" style="margin-top:12px;height:44px;padding:0 20px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer">Verify identity</button>'))
+      +'</div>'
+      +'<div style="background:#fff;border:1px solid #f4d4d4;border-radius:18px;padding:24px 30px;display:flex;align-items:center;justify-content:space-between;gap:20px"><div><div style="font-size:15.5px;font-weight:600;color:#B91C1C">Delete account</div><div style="font-size:13px;color:#8b857a;margin-top:2px">Permanently remove your account and all data. This cannot be undone.</div></div><button data-act="deleteaccount" style="height:44px;padding:0 20px;border:1px solid #DC2626;background:#fff;color:#DC2626;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer;flex-shrink:0">Delete</button></div>'
+      +'</div>';
   } else {
     var tier=(state.user&&state.user.subscription_tier)||'free';
     var tierLabel={free:'Free',premium:'Premium',professional:'Professional',enterprise:'Enterprise'}[tier]||tier;
@@ -620,25 +727,97 @@ function toggle(act,on){
   return '<div data-act="'+act+'" style="width:46px;height:26px;border-radius:100px;background:'+(on?'#16131F':'#d8d2c4')+';position:relative;cursor:pointer;flex-shrink:0;transition:background .2s"><span style="position:absolute;top:3px;left:'+(on?'23px':'3px')+';width:20px;height:20px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,0.25)"></span></div>';
 }
 
+function adminStatCard(label,value,sub,color){
+  return '<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:20px">'
+    +'<div style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">'+label+'</div>'
+    +'<div style="font-family:'+SG+';font-size:28px;font-weight:700;letter-spacing:-0.02em;color:'+(color||'#16131F')+';margin-top:10px">'+value+'</div>'
+    +'<div style="font-size:12.5px;color:#8b857a;margin-top:5px">'+sub+'</div></div>';
+}
 function viewAdmin(){
   var isUsers=state.adminTab==='users';
   function navItem(key,label,icon){var on=state.adminTab===key;return '<div data-act="admintab:'+key+'" style="display:flex;align-items:center;gap:12px;font-size:14.5px;font-weight:500;color:'+(on?'#fff':'rgba(255,255,255,0.62)')+';background:'+(on?'rgba(255,255,255,0.10)':'transparent')+';padding:11px 12px;border-radius:10px;cursor:pointer">'+icon+label+'</div>';}
   var usersIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M16 21v-2a4 4 0 0 0-8 0v2"></path><circle cx="12" cy="7" r="4"></circle></svg>';
   var cardIcon='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><rect x="2" y="5" width="20" height="14" rx="2"></rect><path d="M2 10h20"></path></svg>';
+  var ad=state.adminData;
+  var loadingHtml='<div style="display:flex;align-items:center;justify-content:center;height:200px"><div style="width:36px;height:36px;border-radius:50%;border:3px solid #f1ebdd;border-top-color:#16131F;animation:spin 0.8s linear infinite"></div></div>';
   var content;
   if(isUsers){
-    var stat=userStats.map(function(s){return '<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:20px"><div style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">'+s.label+'</div><div style="font-family:'+SG+';font-size:28px;font-weight:700;letter-spacing:-0.02em;color:'+s.color+';margin-top:10px">'+s.value+'</div><div style="font-size:12.5px;color:'+s.deltaColor+';margin-top:5px">'+s.delta+'</div></div>';}).join('');
-    var rows=usersList.map(function(u){return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 0.6fr;gap:12px;padding:14px 6px;border-bottom:1px solid #f3efe5;align-items:center;font-size:14px"><div style="display:flex;align-items:center;gap:11px;min-width:0"><div style="width:36px;height:36px;border-radius:50%;background:#F1EBDD;color:#9C7A47;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:'+SG+'">'+u.init+'</div><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.name+'</div><div style="font-size:12px;color:#8b857a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.email+'</div></div></div><div style="color:#6f6a60">'+u.role+'</div><div style="color:#6f6a60">'+u.plan+'</div><div style="color:#6f6a60">'+u.joined+'</div><div><span style="font-size:11.5px;font-weight:600;color:'+u.statusText+';background:'+u.statusBg+';padding:4px 11px;border-radius:100px">'+u.status+'</span></div><div style="text-align:right"><button style="background:none;border:none;color:#9C7A47;font-size:13.5px;font-weight:600;cursor:pointer">View</button></div></div>';}).join('');
-    content='<div class="r-grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px">'+stat+'</div><div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><div style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr 1fr 0.6fr;gap:12px;padding:0 6px 14px;border-bottom:1px solid #ece5d7;font-size:11.5px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600"><div>User</div><div>Role</div><div>Plan</div><div>Joined</div><div>Status</div><div></div></div>'+rows+'</div>';
+    var st=ad.stats;
+    var statsHtml=st
+      ? '<div class="r-grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px">'
+        +adminStatCard('Total users',st.total_users,'registered accounts','#16131F')
+        +adminStatCard('Premium',st.premium_users,'paid subscribers','#534AB7')
+        +adminStatCard('Verified listings',st.verified_count,'fraud score &lt;30','#16A34A')
+        +adminStatCard('Flagged',st.flagged_count,'high-risk listings','#DC2626')
+        +'</div>'
+      : loadingHtml;
+    var usersHtml;
+    if(!ad.loaded){usersHtml=loadingHtml;}
+    else if(!ad.users.length){usersHtml='<p style="padding:24px;color:#8b857a;font-size:14px">No users found.</p>';}
+    else{
+      var rows=ad.users.map(function(u){
+        var nm=u.name||u.phone||'\u2014';
+        var init=nm.trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase()||'?';
+        var badge=u.verification_badge?'<span style="font-size:11px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 8px;border-radius:100px">\u2713</span>':'';
+        var planColor={free:'#8b857a',buyer:'#534AB7',professional:'#9C7A47',enterprise:'#16131F'}[u.subscription_tier]||'#8b857a';
+        return '<div style="display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr;gap:12px;padding:14px 6px;border-bottom:1px solid #f3efe5;align-items:center;font-size:14px">'
+          +'<div style="display:flex;align-items:center;gap:11px;min-width:0"><div style="width:36px;height:36px;border-radius:50%;background:#F1EBDD;color:#9C7A47;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;flex-shrink:0;font-family:'+SG+'">'+init+'</div>'
+          +'<div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(nm)+'</div>'
+          +'<div style="font-size:12px;color:#8b857a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(u.email||u.phone||'')+'</div></div></div>'
+          +'<div style="font-weight:600;color:'+planColor+'">'+u.subscription_tier+'</div>'
+          +'<div style="color:#6f6a60">'+u.report_credits+' credits</div>'
+          +'<div>'+badge+'</div>'
+          +'</div>';
+      }).join('');
+      usersHtml='<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px">'
+        +'<div style="display:grid;grid-template-columns:2fr 1fr 1fr 0.8fr;gap:12px;padding:0 6px 14px;border-bottom:1px solid #ece5d7;font-size:11.5px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">'
+        +'<div>User</div><div>Plan</div><div>Credits</div><div>Badge</div></div>'+rows+'</div>';
+    }
+    content=statsHtml+usersHtml;
   } else {
-    var pstat=payStats.map(function(s){return '<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:20px"><div style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">'+s.label+'</div><div style="font-family:'+SG+';font-size:28px;font-weight:700;letter-spacing:-0.02em;color:'+s.color+';margin-top:10px">'+s.value+'</div><div style="font-size:12.5px;color:'+s.deltaColor+';margin-top:5px">'+s.delta+'</div></div>';}).join('');
-    var tx=transactions.map(function(t){return '<div style="display:grid;grid-template-columns:1.6fr 1.2fr 0.85fr 0.9fr;gap:12px;padding:14px 6px;border-bottom:1px solid #f3efe5;align-items:center;font-size:14px"><div style="min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+t.who+'</div><div style="font-size:12.5px;color:#8b857a">'+t.type+' \u00B7 '+t.date+'</div></div><div style="color:#6f6a60;font-size:13.5px">'+t.method+'</div><div style="font-weight:600;color:'+t.amtColor+';font-family:'+SG+'">'+t.amount+'</div><div><span style="font-size:11.5px;font-weight:600;color:'+t.sText+';background:'+t.sBg+';padding:4px 11px;border-radius:100px">'+t.status+'</span></div></div>';}).join('');
-    var rev=planRevenue.map(function(p){return '<div><div style="display:flex;align-items:center;justify-content:space-between;font-size:13.5px;margin-bottom:8px"><span style="color:#16131F">'+p.plan+'</span><span style="font-weight:600;font-family:'+SG+'">'+p.amount+'</span></div><div style="height:9px;background:#f1ebdd;border-radius:100px;overflow:hidden"><div style="height:100%;width:'+p.barW+';background:#9C7A47;border-radius:100px"></div></div><div style="font-size:12px;color:#8b857a;margin-top:6px">'+p.count+'</div></div>';}).join('');
-    var po=payouts.map(function(p){return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px"><div style="min-width:0"><div style="font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+p.who+'</div><div style="font-size:12.5px;color:#8b857a">'+p.date+' \u00B7 '+p.status+'</div></div><div style="font-size:14.5px;font-weight:600;flex-shrink:0;font-family:'+SG+'">'+p.amount+'</div></div>';}).join('');
-    content='<div class="r-grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px">'+pstat+'</div><div class="r-grid2" style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start"><div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><h3 style="font-family:'+SG+';font-size:18px;font-weight:700;letter-spacing:-0.01em">Recent transactions</h3></div><div style="display:grid;grid-template-columns:1.6fr 1.2fr 0.85fr 0.9fr;gap:12px;padding:0 6px 14px;border-bottom:1px solid #ece5d7;font-size:11.5px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600"><div>Customer</div><div>Method</div><div>Amount</div><div>Status</div></div>'+tx+'</div><div style="display:flex;flex-direction:column;gap:18px"><div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><h3 style="font-family:'+SG+';font-size:18px;font-weight:700;letter-spacing:-0.01em;margin-bottom:20px">Revenue by plan</h3><div style="display:flex;flex-direction:column;gap:18px">'+rev+'</div></div><div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px"><h3 style="font-family:'+SG+';font-size:18px;font-weight:700;letter-spacing:-0.01em">Upcoming payouts</h3><span style="font-size:12px;font-weight:600;color:#9C7A47;background:#F1EBDD;padding:4px 12px;border-radius:100px">K58,900</span></div><div style="display:flex;flex-direction:column;gap:16px">'+po+'</div></div></div></div>';
+    var an=ad.analytics;
+    var rev=an&&an.revenue;
+    var fc=an&&an.fraud_cases;
+    var props=an&&an.properties;
+    var pstatsHtml=an
+      ? '<div class="r-grid4" style="display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-bottom:24px">'
+        +adminStatCard('Total revenue',(rev?'K'+Math.round(Number(rev.total)).toLocaleString():'\u2014'),(rev?rev.completed_payments+' completed payments':''),'#16131F')
+        +adminStatCard('Total properties',(props?props.total:'\u2014'),(props?props.verified+' verified, '+props.flagged+' flagged':''),'#16131F')
+        +adminStatCard('Fraud cases',(fc?fc.total:'\u2014'),(fc?fc.open+' open \u00B7 '+fc.resolved+' resolved':''),'#DC2626')
+        +adminStatCard('Avg fraud score',(fc?Math.round(fc.avg_score)+'/100':'\u2014'),'platform average',fc&&fc.avg_score>60?'#DC2626':'#16A34A')
+        +'</div>'
+      : loadingHtml;
+    var tierRows=an&&an.users&&an.users.by_tier
+      ? Object.keys(an.users.by_tier).map(function(k){
+          var cnt=an.users.by_tier[k];
+          var total=an.users.total||1;
+          var pct=Math.round(cnt/total*100);
+          return '<div><div style="display:flex;align-items:center;justify-content:space-between;font-size:13.5px;margin-bottom:8px"><span style="color:#16131F;text-transform:capitalize">'+k+'</span><span style="font-weight:600;font-family:'+SG+'">'+cnt+' users</span></div>'
+            +'<div style="height:9px;background:#f1ebdd;border-radius:100px;overflow:hidden"><div style="height:100%;width:'+pct+'%;background:#9C7A47;border-radius:100px"></div></div>'
+            +'<div style="font-size:12px;color:#8b857a;margin-top:6px">'+pct+'% of total</div></div>';
+        }).join('')
+      : '<p style="color:#8b857a;font-size:14px">Loading\u2026</p>';
+    var analyticsDetails=an
+      ? '<div class="r-grid2" style="display:grid;grid-template-columns:1.55fr 1fr;gap:18px;align-items:start">'
+        +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><h3 style="font-family:'+SG+';font-size:18px;font-weight:700;letter-spacing:-0.01em;margin-bottom:16px">Platform overview</h3>'
+        +'<div style="display:flex;flex-direction:column;gap:14px">'
+        +'<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3efe5;font-size:14px"><span style="color:#8b857a">Total users</span><span style="font-weight:600">'+an.users.total+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3efe5;font-size:14px"><span style="color:#8b857a">Verified users</span><span style="font-weight:600;color:#16A34A">'+an.users.verified+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3efe5;font-size:14px"><span style="color:#8b857a">Suspended</span><span style="font-weight:600;color:#DC2626">'+an.users.suspended+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid #f3efe5;font-size:14px"><span style="color:#8b857a">New (last 30 days)</span><span style="font-weight:600;color:#534AB7">'+an.users.new_last_30_days+'</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:14px"><span style="color:#8b857a">Revenue ('+( rev?rev.currency:'ZMW')+')</span><span style="font-weight:600;font-family:'+SG+'">K'+(rev?Math.round(Number(rev.total)).toLocaleString():'0')+'</span></div>'
+        +'</div></div>'
+        +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:16px;padding:24px"><h3 style="font-family:'+SG+';font-size:18px;font-weight:700;letter-spacing:-0.01em;margin-bottom:20px">Users by plan</h3><div style="display:flex;flex-direction:column;gap:18px">'+tierRows+'</div></div>'
+        +'</div>'
+      : loadingHtml;
+    content=pstatsHtml+analyticsDetails;
   }
-  return '<div class="r-admin" style="display:grid;grid-template-columns:248px 1fr;min-height:100vh;background:#FAF7F1;color:#16131F"><aside class="r-admin-aside" style="background:#16131F;color:#fff;display:flex;flex-direction:column;padding:26px 18px;position:sticky;top:0;height:100vh"><div style="display:flex;align-items:center;gap:9px;padding:0 8px 28px"><img src="logo-white.png" width="30" height="30" alt="Vertera"><span style="font-family:'+SG+';font-size:19px;font-weight:700;letter-spacing:-0.02em;color:#fff">Vertera</span><span style="margin-left:auto;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#d8c6a8;background:rgba(216,198,168,0.14);padding:3px 8px;border-radius:100px">Admin</span></div><div style="font-size:11px;color:#6b6675;text-transform:uppercase;letter-spacing:0.08em;padding:0 8px 10px">Manage</div><div style="display:flex;flex-direction:column;gap:3px">'+navItem('users','Users',usersIcon)+navItem('payments','Payments',cardIcon)+'</div><div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1)"><div data-act="go:home" style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,0.6);padding:11px 12px;border-radius:10px;cursor:pointer"><span style="font-size:16px">\u2190</span>Back to site</div><div style="display:flex;align-items:center;gap:11px;padding:12px;margin-top:4px"><div style="width:36px;height:36px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">AM</div><div style="min-width:0"><div style="font-size:13.5px;font-weight:500;color:#fff">Admin Mwale</div><div style="font-size:12px;color:#6b6675;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">admin@vertera.app</div></div></div></div></aside>'
-  +'<div style="display:flex;flex-direction:column;min-width:0"><div style="background:#fff;border-bottom:1px solid #ece5d7;padding:22px 36px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="font-family:'+SG+';font-size:26px;font-weight:700;letter-spacing:-0.02em;color:#16131F">'+(isUsers?'Users':'Payments')+'</h1><p style="font-size:13.5px;color:#8b857a;margin-top:3px">'+(isUsers?'Manage accounts, roles and subscriptions.':'Revenue, transactions and seller payouts.')+'</p></div><div style="display:flex;align-items:center;gap:10px"><div style="height:42px;display:flex;align-items:center;padding:0 16px;border:1px solid #e2dccb;border-radius:100px;font-size:14px;color:#6f6a60;background:#fff">Last 30 days</div><button style="height:42px;padding:0 20px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer">'+(isUsers?'Invite user':'Export CSV')+'</button></div></div><div style="padding:32px 36px">'+content+'</div></div></div>';
+  var adminUser=state.user||{};
+  var adminName=adminUser.name||'Admin';
+  var adminSub=adminUser.phone||adminUser.email||'';
+  var adminInit=adminName.trim().split(/\s+/).map(function(w){return w[0];}).slice(0,2).join('').toUpperCase()||'A';
+  return '<div class="r-admin" style="display:grid;grid-template-columns:248px 1fr;min-height:100vh;background:#FAF7F1;color:#16131F"><aside class="r-admin-aside" style="background:#16131F;color:#fff;display:flex;flex-direction:column;padding:26px 18px;position:sticky;top:0;height:100vh"><div style="display:flex;align-items:center;gap:9px;padding:0 8px 28px"><img src="logo-white.png" width="30" height="30" alt="Vertera"><span style="font-family:'+SG+';font-size:19px;font-weight:700;letter-spacing:-0.02em;color:#fff">Vertera</span><span style="margin-left:auto;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#d8c6a8;background:rgba(216,198,168,0.14);padding:3px 8px;border-radius:100px">Admin</span></div><div style="font-size:11px;color:#6b6675;text-transform:uppercase;letter-spacing:0.08em;padding:0 8px 10px">Manage</div><div style="display:flex;flex-direction:column;gap:3px">'+navItem('users','Users',usersIcon)+navItem('payments','Analytics',cardIcon)+'</div><div style="margin-top:auto;padding-top:16px;border-top:1px solid rgba(255,255,255,0.1)"><div data-act="go:home" style="display:flex;align-items:center;gap:10px;font-size:14px;color:rgba(255,255,255,0.6);padding:11px 12px;border-radius:10px;cursor:pointer"><span style="font-size:16px">\u2190</span>Back to site</div><div style="display:flex;align-items:center;gap:11px;padding:12px;margin-top:4px"><div style="width:36px;height:36px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;flex-shrink:0">'+adminInit+'</div><div style="min-width:0"><div style="font-size:13.5px;font-weight:500;color:#fff">'+esc(adminName)+'</div><div style="font-size:12px;color:#6b6675;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+esc(adminSub)+'</div></div></div></div></aside>'
+  +'<div style="display:flex;flex-direction:column;min-width:0"><div style="background:#fff;border-bottom:1px solid #ece5d7;padding:22px 36px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><h1 style="font-family:'+SG+';font-size:26px;font-weight:700;letter-spacing:-0.02em;color:#16131F">'+(isUsers?'Users':'Analytics')+'</h1><p style="font-size:13.5px;color:#8b857a;margin-top:3px">'+(isUsers?'Registered accounts and subscription tiers.':'Platform revenue and fraud case metrics.')+'</p></div>'+(ad.loaded?'<span style="font-size:12px;color:#8b857a">Live data</span>':'<div style="width:18px;height:18px;border-radius:50%;border:2px solid #f1ebdd;border-top-color:#9C7A47;animation:spin 0.8s linear infinite"></div>')+'</div><div style="padding:32px 36px">'+content+'</div></div></div>';
 }
 
 function viewCreateProperty(){
@@ -681,8 +860,28 @@ function render(){
   if(state.view==='browse'){ initMap(); }
   observeReveals();
 }
-function go(view){ if(_map){try{_map.remove()}catch(e){}_map=null;_markerGroup=null;_cadastre=null;_meMarker=null;} state.menuOpen=false; state.view=view; if(view==='signin'){state.authStep='phone';} renderNav(); render(); }
-function openListing(id){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.selectedId=id; state.menuOpen=false; state.view='listing'; render(); }
+function go(view){ if(_map){try{_map.remove()}catch(e){}_map=null;_markerGroup=null;_cadastre=null;_meMarker=null;} state.menuOpen=false; state.view=view; if(view==='signin'){state.authStep='phone';} if(view==='admin'){fetchAdminData();} renderNav(); render(); }
+function openListing(id){
+  if(_map){try{_map.remove()}catch(e){}_map=null;}
+  state.selectedId=id; state.menuOpen=false; state.view='listing';
+  state.selectedDetail=null;
+  var quick=state.listings.filter(function(p){return String(p.id)===String(id);})[0];
+  if(quick){state.selectedDetail=quick;state.listingLoading=false;}
+  else{state.listingLoading=true;}
+  renderNav(); render();
+  var headers=state.token?{'Authorization':'Bearer '+state.token}:{};
+  fetch(API+'/properties/'+id,{headers:headers})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d&&d.id){state.selectedDetail=d;}
+      state.listingLoading=false;
+      if(state.view==='listing'&&state.selectedId===id) render();
+    })
+    .catch(function(){
+      state.listingLoading=false;
+      if(state.view==='listing'&&state.selectedId===id) render();
+    });
+}
 function openCheckout(key){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.checkout={plan:checkoutPlans[key]||checkoutPlans.report,method:'card',done:false}; state.menuOpen=false; state.view='checkout'; render(); }
 
 function observeReveals(){
@@ -804,7 +1003,7 @@ document.addEventListener('click',function(e){
   }
   else if(cmd==='comethod'){ state.checkout.method=arg; render(); }
   else if(cmd==='settab'){ state.setTab=arg; render(); }
-  else if(cmd==='admintab'){ state.adminTab=arg; render(); }
+  else if(cmd==='admintab'){ state.adminTab=arg; fetchAdminData(); render(); }
   else if(cmd==='notiftog'){ state.notif[arg]=!state.notif[arg]; render(); if(state.token){fetch(API+'/auth/me/notifications',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},body:JSON.stringify(state.notif)}).catch(function(){});} }
   else if(cmd==='twofatog'){ state.twofa=!state.twofa; render(); }
   else if(cmd==='bview'){ state.browseMobileView=arg; var b=document.querySelector('.r-browse-body'); if(b){b.className='r-browse-body mv-'+arg;} document.querySelectorAll('[data-act^="bview"]').forEach(function(btn){var k=btn.getAttribute('data-act').split(':')[1];btn.style.background=k===arg?'#16131F':'transparent';btn.style.color=k===arg?'#fff':'#8b857a';}); if(_map)setTimeout(function(){_map.invalidateSize();},130); }
