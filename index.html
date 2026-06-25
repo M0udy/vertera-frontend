@@ -328,7 +328,7 @@ var state={
   selectedDetail:null,listingLoading:false,
   adminData:{stats:null,users:[],analytics:null,loaded:false,loading:false},
 };
-var _map=null,_markerGroup=null,_cadastre=null,_meMarker=null,_io=null;
+var _map=null,_markerGroup=null,_cadastre=null,_meMarker=null,_io=null,_popNav=false;
 
 function fetchListings(){
   if(state.listingsLoading) return;
@@ -880,7 +880,7 @@ function render(){
   if(state.view==='browse'){ initMap(); }
   observeReveals();
 }
-function go(view){ if(_map){try{_map.remove()}catch(e){}_map=null;_markerGroup=null;_cadastre=null;_meMarker=null;} state.menuOpen=false; state.view=view; if(view==='signin'){state.authStep='phone';} if(view==='admin'){fetchAdminData();} history.pushState({view:view},'',location.pathname); renderNav(); render(); }
+function go(view){ if(_map){try{_map.remove()}catch(e){}_map=null;_markerGroup=null;_cadastre=null;_meMarker=null;} state.menuOpen=false; state.view=view; if(view==='signin'){state.authStep='phone';} if(view==='admin'){fetchAdminData();} if(!_popNav)history.pushState({view:view},'',location.pathname); renderNav(); render(); }
 function openListing(id){
   if(_map){try{_map.remove()}catch(e){}_map=null;}
   state.selectedId=id; state.menuOpen=false; state.view='listing';
@@ -888,7 +888,7 @@ function openListing(id){
   var quick=state.listings.filter(function(p){return String(p.id)===String(id);})[0];
   if(quick){state.selectedDetail=quick;state.listingLoading=false;}
   else{state.listingLoading=true;}
-  history.pushState({view:'listing',id:id},'',location.pathname);
+  if(!_popNav)history.pushState({view:'listing',id:id},'',location.pathname);
   renderNav(); render();
   var headers=state.token?{'Authorization':'Bearer '+state.token}:{};
   fetch(API+'/properties/'+id,{headers:headers})
@@ -903,7 +903,7 @@ function openListing(id){
       if(state.view==='listing'&&state.selectedId===id) render();
     });
 }
-function openCheckout(key){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.checkout={plan:checkoutPlans[key]||checkoutPlans.report,method:'card',done:false}; state.menuOpen=false; state.view='checkout'; history.pushState({view:'checkout',key:key},'',location.pathname); render(); }
+function openCheckout(key){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.checkout={plan:checkoutPlans[key]||checkoutPlans.report,method:'card',done:false}; state.menuOpen=false; state.view='checkout'; if(!_popNav)history.pushState({view:'checkout',key:key},'',location.pathname); render(); }
 
 function observeReveals(){
   if(_io) _io.disconnect();
@@ -1191,10 +1191,12 @@ window.addEventListener('scroll',function(){
 /* ============================ BOOT ============================ */
 window.addEventListener('popstate',function(e){
   var s=e.state;
-  if(!s){go('home');return;}
-  if(s.view==='listing'&&s.id){openListing(s.id);return;}
-  if(s.view==='checkout'&&s.key){openCheckout(s.key);return;}
-  go(s.view||'home');
+  _popNav=true;
+  if(!s){go('home');}
+  else if(s.view==='listing'&&s.id){openListing(s.id);}
+  else if(s.view==='checkout'&&s.key){openCheckout(s.key);}
+  else{go(s.view||'home');}
+  _popNav=false;
 });
 renderNav(); renderFooter(); render();
 history.replaceState({view:state.view},'',location.pathname);
