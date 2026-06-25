@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Vertera — Verified Land</title>
+<link rel="canonical" href="https://vertera.app/">
+<script>if(location.hostname.indexOf('pages.dev')!==-1){location.replace('https://vertera.app'+location.pathname+location.search+location.hash);}</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800;900&family=Hanken+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -958,7 +960,7 @@ function nearMe(){
 }
 window.openListing=openListing;
 window.shareProperty=function(id){
-  var url=window.location.origin+'/?listing='+id;
+  var url='https://vertera.app/?listing='+id;
   if(navigator.share){navigator.share({title:'Property on Vertera',url:url}).catch(function(){});}
   else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){alert('Link copied!');}).catch(function(){prompt('Copy link:',url);});}
   else{prompt('Copy link:',url);}
