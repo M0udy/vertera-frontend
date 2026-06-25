@@ -771,7 +771,8 @@ document.addEventListener('click',function(e){
     var phoneEl=document.getElementById('mmPhone');
     var rawPhone=(phoneEl&&phoneEl.value.trim())||'';
     if(!rawPhone){alert('Please enter your '+(m==='mtn'?'MTN':'Airtel')+' number.');return;}
-    var phone=rawPhone.replace(/\s+/g,'').replace(/^\+/,'').replace(/^260/,'260').replace(/^0/,'260');
+    var phone=rawPhone.replace(/\s+/g,'').replace(/^\+/,'');
+    if(/^0/.test(phone)) phone='260'+phone.slice(1); else if(!/^260/.test(phone)) phone='260'+phone;
     if(!/^260\d{9}$/.test(phone)){alert('Please enter a valid Zambian number — e.g. 97 000 0000.');return;}
     var correspondent=m==='mtn'?'MTN_MOMO_ZMB':'AIRTEL_OAPI_ZMB';
     var purpose='buyer';
@@ -867,7 +868,7 @@ document.addEventListener('click',function(e){
     var lid=state.currentListing||state.selectedId;
     if(!lid){return;}
     el.disabled=true; el.textContent='Sending…';
-    fetch(API+'/properties/'+lid+'/message-seller',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},body:JSON.stringify({message:'Hi, I am interested in this property. Please get in touch.'})})
+    fetch(API+'/properties/'+lid+'/message-seller',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},body:JSON.stringify({content:'Hi, I am interested in this property. Please get in touch.'})})
       .then(function(r){return r.json();})
       .then(function(d){
         el.disabled=false; el.textContent='Message sent ✓';
