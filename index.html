@@ -1260,10 +1260,16 @@ document.addEventListener('click',function(e){
   }
   else if(cmd==='sub'){
     var i=document.getElementById('subEmail');
-    if(i&&/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.value.trim())){
+    if(!i) return;
+    var existErr=document.getElementById('subError'); if(existErr) existErr.remove();
+    if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(i.value.trim())){
       var email=i.value.trim();
       fetch(API+'/waitlist',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:email})}).catch(function(){});
       i.parentElement.innerHTML='<div style="display:flex;align-items:center;gap:10px;color:#7CCF9A;font-size:16px"><span>✓</span><span>You’re on the list — we’ll be in touch.</span></div>';
+    } else {
+      i.parentElement.style.borderBottomColor='#f87171';
+      i.parentElement.insertAdjacentHTML('afterend','<div id="subError" style="margin-top:8px;font-size:13px;color:#f87171">'+(i.value.trim()?'Please enter a valid email address.':'Enter your email to stay in the loop.')+'</div>');
+      setTimeout(function(){var e=document.getElementById('subError');if(e)e.remove();if(i.parentElement)i.parentElement.style.borderBottomColor='rgba(255,255,255,0.3)';},3000);
     }
   }
 });
