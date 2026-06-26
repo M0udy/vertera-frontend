@@ -715,11 +715,7 @@ function viewCheckout(){
   var form='';
   var inS='height:50px;border:1px solid #e2dccb;border-radius:12px;padding:0 15px;font-size:15px;color:#16131F;outline:none;background:#fff';
   if(m==='card'){
-    if(p.kind==='subscription'){
-      form='<div style="margin-top:22px;display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:14px 15px;font-size:14px;line-height:1.5;color:#6f6a60"><span style="color:#534AB7;flex-shrink:0">&#128274;</span><span>You\'ll be redirected to Stripe\'s secure checkout page to complete your payment. Your card details are never shared with Vertera.</span></div>';
-    } else {
-      form='<div style="margin-top:22px;display:flex;align-items:flex-start;gap:9px;background:#FEF9EC;border-radius:12px;padding:14px 15px;font-size:14px;line-height:1.5;color:#6f6a60"><span style="color:#D97706;flex-shrink:0">&#9432;</span><span>Card payments are available for subscription plans only. For this purchase, please choose MTN MoMo or Airtel Money.</span></div>';
-    }
+    form='<div style="margin-top:22px;display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:14px 15px;font-size:14px;line-height:1.5;color:#6f6a60"><span style="color:#534AB7;flex-shrink:0">&#128274;</span><span>Card payments are coming soon. Please use MTN MoMo or Airtel Money to complete your payment.</span></div>';
   } else {
     var lbl=(checkoutMethods.filter(function(x){return x.key===m;})[0]||{}).label||'';
     form='<div style="margin-top:22px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">'+lbl+' number</label><div style="display:flex;align-items:center;height:50px;border:1px solid #e2dccb;border-radius:12px;background:#fff;overflow:hidden"><div style="padding:0 13px;height:100%;display:flex;align-items:center;border-right:1px solid #ece5d7;font-size:15px;color:#16131F;font-weight:500;background:#FAF7F1">\uD83C\uDDFF\uD83C\uDDF2 +260</div><input id="mmPhone" placeholder="97 000 0000" type="tel" style="flex:1;min-width:0;height:100%;border:none;outline:none;padding:0 14px;font-size:15px;color:#16131F;background:none"></div></div><div style="display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5;color:#6f6a60"><span style="color:#9C7A47;flex-shrink:0">\u24D8</span><span>You\u2019ll get a prompt on your phone to approve the payment with your wallet PIN.</span></div></div>';
@@ -1149,29 +1145,7 @@ document.addEventListener('click',function(e){
     if(!state.token){alert('Please sign in first.');return;}
     var p=state.checkout.plan||checkoutPlans.report;
     var m=state.checkout.method;
-    if(m==='card'){
-      if(p.kind!=='subscription'){alert('Card payments are only available for subscription plans. Please choose MTN MoMo or Airtel Money for this purchase.');return;}
-      var tier='buyer';
-      if(p.name&&p.name.indexOf('Seller')!==-1) tier='seller';
-      else if(p.name&&p.name.indexOf('Bank')!==-1) tier='bank';
-      el.disabled=true; el.textContent='Redirecting to Stripe\u2026';
-      fetch(API+'/payments/stripe/checkout',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
-        body:JSON.stringify({tier:tier})
-      })
-      .then(function(r){return r.json();})
-      .then(function(d){
-        if(d.url){window.location.href=d.url;return;}
-        el.disabled=false; el.textContent='Pay with card';
-        alert((d.error&&d.error.message)||d.error||'Could not start Stripe checkout. Please try again.');
-      })
-      .catch(function(){
-        el.disabled=false; el.textContent='Pay with card';
-        alert('Network error. Please check your connection and try again.');
-      });
-      return;
-    }
+    if(m==='card'){alert('Card payments are coming soon. Please select MTN MoMo or Airtel Money to complete your payment.');return;}
     // Boost plans not yet in PawaPay catalogue
     if(p.kind==='boost'&&!state.checkout.propertyId){alert('To boost a listing, open the listing you own and tap "Boost this listing" from there.');return;}
     // MTN / Airtel → PawaPay push
