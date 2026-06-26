@@ -317,7 +317,7 @@ var state={
   view:'home', adminTab:'users', signupMode:false, authStep:'phone', menuOpen:false,
   filters:{q:'',type:'all',priceMax:3000,scoreMax:100,cadastre:false}, browseMobileView:'list',
   selectedId:'pk',
-  checkout:{plan:null,method:'card',done:false},
+  checkout:{plan:null,method:'card',done:false,propertyId:null},
   setTab:'profile', twofa:true,
   notif:{fraud:true,price:true,listings:false,messages:true,marketing:false},
   profile:{name:'Grace Phiri',email:'grace@email.com',phone:'+260 97 555 0142'},
@@ -625,6 +625,7 @@ function viewListing(){
   var facts=[['Location',sel.area+', Lusaka'],['Property type',L.typeLabel],['Plot size',sel.size],['Title deed',sel.deedNo],['Asking price',sel.priceLabel],['Listed',listedStr]].map(function(f){return '<div style="display:flex;flex-direction:column;gap:4px;border-bottom:1px solid #f3efe5;padding-bottom:12px"><span style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.04em;font-weight:600">'+f[0]+'</span><span style="font-size:15.5px;color:#16131F;font-weight:500">'+f[1]+'</span></div>';}).join('');
   var s=L.seller;
   var sbadge=s.verified?'<span style="font-size:11px;font-weight:700;color:#15803D;background:#DCFCE7;padding:2px 8px;border-radius:100px">\u2713 Verified</span>':'<span style="font-size:11px;font-weight:700;color:#B45309;background:#FEF3C7;padding:2px 8px;border-radius:100px">Unverified</span>';
+  var isOwner=!!(state.selectedDetail&&state.user&&state.selectedDetail.seller_id===state.user.id);
   return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div style="max-width:1180px;margin:0 auto;padding:34px 32px 90px">'
   +'<a data-act="go:browse" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">\u2190 Back to listings</a>'
   +'<div style="margin-top:22px;display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap"><div><span style="display:inline-flex;align-items:center;gap:6px;background:'+sel.badgeBg+';color:'+sel.badgeText+';font-size:12px;font-weight:700;padding:5px 12px;border-radius:100px">'+sel.badgeIcon+' '+sel.badgeLabel+'</span><h1 style="margin-top:14px;font-family:'+SG+';font-weight:800;font-size:clamp(30px,4vw,48px);line-height:1.02;letter-spacing:-0.03em;color:#16131F">'+sel.title+'</h1><div style="margin-top:10px;font-size:16px;color:#6f6a60">'+sel.area+', Lusaka \u00B7 '+sel.size+' \u00B7 '+L.typeLabel+'</div></div><div style="text-align:right"><div style="font-family:'+SG+';font-weight:800;font-size:clamp(28px,3.4vw,42px);letter-spacing:-0.03em;color:#16131F">'+sel.priceLabel+'</div><div style="font-size:13px;color:#8b857a;margin-top:2px">Asking price</div></div></div>'
@@ -632,6 +633,7 @@ function viewListing(){
   +'<div class="r-stack" style="margin-top:28px;display:grid;grid-template-columns:1.5fr 1fr;gap:26px;align-items:start"><div style="display:flex;flex-direction:column;gap:24px"><div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap"><div><div style="display:flex;align-items:center;gap:9px"><img src="logo-purple.png" width="18" height="18" alt=""><span style="font-family:'+SG+';font-weight:700;font-size:20px;letter-spacing:-0.02em;color:#16131F">Vertera fraud report</span></div><div style="margin-top:6px;font-size:13.5px;color:#8b857a">Six independent layers \u00B7 generated in 58 seconds</div></div><div style="text-align:right"><div style="font-family:'+SG+';font-weight:800;font-size:42px;line-height:1;letter-spacing:-0.03em;color:'+sel.scoreColor+'">'+sel.score+'<span style="font-size:17px;color:#bdb6a8;font-weight:600">/100</span></div><div style="font-size:12.5px;font-weight:600;color:'+sel.scoreColor+';margin-top:3px">'+L.riskLabel+'</div></div></div><div style="margin-top:18px;height:8px;background:#f1ebdd;border-radius:100px;overflow:hidden"><div style="height:100%;width:'+sel.score+'%;background:'+sel.scoreColor+';border-radius:100px"></div></div><div style="margin-top:5px;display:flex;justify-content:space-between;font-size:11px;color:#a39b8c"><span>0 \u00B7 safe</span><span>100 \u00B7 high risk</span></div><div style="margin-top:26px">'+layers+'</div></div>'
   +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:30px"><h3 style="font-family:'+SG+';font-weight:700;font-size:19px;letter-spacing:-0.01em;color:#16131F">Property details</h3><div style="margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:18px 32px">'+facts+'</div></div></div>'
   +'<div style="position:sticky;top:94px;display:flex;flex-direction:column;gap:18px"><div style="background:#16131F;color:#fff;border-radius:18px;padding:28px"><div style="font-size:13px;color:rgba(255,255,255,0.6)">Unlock the complete report</div><div style="margin-top:6px;display:flex;align-items:baseline;gap:6px"><span style="font-family:'+SG+';font-weight:800;font-size:38px;letter-spacing:-0.03em">K500</span><span style="font-size:14px;color:rgba(255,255,255,0.55)">one-time</span></div><div style="margin-top:18px;display:flex;flex-direction:column;gap:11px"><div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4"><span style="color:#7CCF9A;flex-shrink:0">\u2713</span><span style="color:rgba(255,255,255,0.84)">Full 6-layer fraud analysis &amp; red flags</span></div><div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4"><span style="color:#7CCF9A;flex-shrink:0">\u2713</span><span style="color:rgba(255,255,255,0.84)">Independent fraud verdict — Safe, Risky, or High Risk</span></div><div style="display:flex;align-items:flex-start;gap:10px;font-size:14px;line-height:1.4"><span style="color:#7CCF9A;flex-shrink:0">\u2713</span><span style="color:rgba(255,255,255,0.84)">Seller identity &amp; KYC status check</span></div></div><button data-act="checkout:report" style="margin-top:22px;width:100%;height:52px;border:none;background:#fff;color:#16131F;border-radius:100px;font-size:15px;font-weight:700;cursor:pointer">Get the full report \u2192</button>'+(state.token?'<button data-act="dlreport" style="margin-top:10px;width:100%;height:44px;border:none;background:rgba(255,255,255,0.12);color:#fff;border-radius:100px;font-size:14px;font-weight:600;cursor:pointer">Download PDF report</button>':'')+'</div>'
+  +(isOwner?'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:24px"><div style="font-size:12px;color:#9C7A47;text-transform:uppercase;letter-spacing:0.05em;font-weight:600">Seller tools</div><div style="font-family:'+SG+';font-weight:700;font-size:18px;color:#16131F;margin-top:6px">Boost this listing</div><p style="margin-top:8px;font-size:13.5px;line-height:1.5;color:#6f6a60">Move your listing to the top of all search results and get up to 3× more views.</p><div style="margin-top:14px;display:flex;flex-direction:column;gap:8px"><button data-act="checkout:boost-basic" style="width:100%;height:44px;border:1.5px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span>7-day Boost</span><span style="font-weight:700">K1,000</span></button><button data-act="checkout:boost-standard" style="width:100%;height:44px;border:1.5px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span>14-day Boost</span><span style="font-weight:700">K2,500</span></button><button data-act="checkout:boost-premium" style="width:100%;height:44px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:0 16px"><span>30-day Boost</span><span style="font-weight:700">K5,000</span></button></div></div>':'')
   +'<div style="background:#fff;border:1px solid #ece5d7;border-radius:18px;padding:24px"><div style="font-size:12px;color:#8b857a;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:14px">Listed by</div><div style="display:flex;align-items:center;gap:13px"><div style="width:48px;height:48px;border-radius:50%;background:#534AB7;color:#fff;display:flex;align-items:center;justify-content:center;font-family:'+SG+';font-weight:700;font-size:17px;flex-shrink:0">'+s.init+'</div><div style="min-width:0"><div style="display:flex;align-items:center;gap:7px"><span style="font-family:'+SG+';font-weight:600;font-size:16px;color:#16131F">'+s.name+'</span>'+sbadge+'</div><div style="font-size:13px;color:#8b857a;margin-top:3px">'+s.meta+'</div></div></div><button data-act="contactseller" style="margin-top:18px;width:100%;height:48px;border:1px solid #16131F;background:#fff;color:#16131F;border-radius:100px;font-size:14.5px;font-weight:600;cursor:pointer">Contact seller</button><div style="display:flex;gap:8px;margin-top:10px"><button onclick="window.navigateProperty('+sel.lat+','+sel.lng+')" style="flex:1;height:42px;border:none;background:#F0EDE7;color:#16131F;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer">Navigate</button><button onclick="window.shareProperty(\''+sel.id+'\')" style="flex:1;height:42px;border:none;background:#F0EDE7;color:#16131F;border-radius:100px;font-size:13.5px;font-weight:600;cursor:pointer">Share</button></div></div></div></div></div></div>';
 }
 
@@ -904,7 +906,7 @@ function openListing(id){
       if(state.view==='listing'&&state.selectedId===id) render();
     });
 }
-function openCheckout(key){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.checkout={plan:checkoutPlans[key]||checkoutPlans.report,method:'card',done:false}; state.menuOpen=false; state.view='checkout'; if(!_popNav)history.pushState({view:'checkout',key:key},'',location.pathname); render(); }
+function openCheckout(key,propertyId){ if(_map){try{_map.remove()}catch(e){}_map=null;} state.checkout={plan:checkoutPlans[key]||checkoutPlans.report,method:'card',done:false,propertyId:propertyId||null}; state.menuOpen=false; state.view='checkout'; if(!_popNav)history.pushState({view:'checkout',key:key},'',location.pathname); render(); }
 
 function observeReveals(){
   if(_io) _io.disconnect();
@@ -979,7 +981,7 @@ document.addEventListener('click',function(e){
   if(cmd==='go'){ go(arg); }
   else if(cmd==='menu'){ state.menuOpen=!state.menuOpen; renderNav(); }
   else if(cmd==='open'){ openListing(arg); }
-  else if(cmd==='checkout'){ openCheckout(arg); }
+  else if(cmd==='checkout'){ openCheckout(arg,arg.startsWith('boost')&&state.selectedId?state.selectedId:null); }
   else if(cmd==='pay'){
     if(!state.token){alert('Please sign in first.');return;}
     var p=state.checkout.plan||checkoutPlans.report;
@@ -987,7 +989,7 @@ document.addEventListener('click',function(e){
     // Card / bank / Zamtel: not yet live via API — show placeholder success
     if(m==='card'||m==='bank'||m==='zamtel'){alert('Card and bank payments are coming soon. Please select MTN or Airtel Money to complete your payment now.');return;}
     // Boost plans not yet in PawaPay catalogue
-    if(p.kind==='boost'){alert('Listing boosts are coming soon — we’ll notify you by SMS when this launches.');return;}
+    if(p.kind===’boost’&&!state.checkout.propertyId){alert(‘To boost a listing, open the listing you own and tap "Boost this listing" from there.’);return;}
     // MTN / Airtel → PawaPay push
     var phoneEl=document.getElementById('mmPhone');
     var rawPhone=(phoneEl&&phoneEl.value.trim())||'';
@@ -998,11 +1000,13 @@ document.addEventListener('click',function(e){
     var correspondent=m==='mtn'?'MTN_MOMO_ZMB':'AIRTEL_OAPI_ZMB';
     var purpose='buyer';
     if(p.kind==='report') purpose='report';
+    else if(p.kind==='boost'){if(p.name.indexOf('30')!==-1)purpose='boost-premium';else if(p.name.indexOf('14')!==-1)purpose='boost-standard';else purpose='boost-basic';}
     else if(p.kind==='credits'){if(p.name.indexOf('20')!==-1)purpose='credits_20';else if(p.name.indexOf('10')!==-1)purpose='credits_10';else purpose='credits_5';}
     else if(p.name&&p.name.indexOf('Seller')!==-1) purpose='seller';
     else if(p.name&&p.name.indexOf('Bank')!==-1) purpose='bank';
     var body={phone:phone,correspondent:correspondent,purpose:purpose};
     if(purpose==='report'&&state.selectedId) body.property_id=state.selectedId;
+    if(p.kind==='boost'&&state.checkout.propertyId) body.property_id=state.checkout.propertyId;
     el.disabled=true; el.textContent='Sending prompt…';
     fetch(API+'/payments/deposit',{
       method:'POST',
