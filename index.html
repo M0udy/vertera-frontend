@@ -1109,7 +1109,7 @@ document.addEventListener('click',function(e){
     el.disabled=true; el.textContent='Downloading…';
     fetch(API+'/properties/'+propId+'/report.pdf',{headers:{'Authorization':'Bearer '+state.token}})
       .then(function(r){
-        if(!r.ok){el.disabled=false;el.textContent='Download PDF report';if(r.status===403){alert('PDF reports require a Premium subscription. Upgrade in Settings → Subscription.');}else{alert('Could not generate the report. Please try again.');}return null;}
+        if(!r.ok){el.disabled=false;el.textContent='Download PDF report';if(r.status===403){alert('You need to unlock this report before downloading the PDF.');}else{alert('Could not generate the report. Please try again.');}return null;}
         return r.blob();
       })
       .then(function(blob){
