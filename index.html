@@ -1164,7 +1164,7 @@ document.addEventListener('click',function(e){
       .then(function(d){
         if(d.url){window.location.href=d.url;return;}
         el.disabled=false; el.textContent='Pay with card';
-        alert(d.error||'Could not start Stripe checkout. Please try again.');
+        alert((d.error&&d.error.message)||d.error||'Could not start Stripe checkout. Please try again.');
       })
       .catch(function(){
         el.disabled=false; el.textContent='Pay with card';
