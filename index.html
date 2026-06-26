@@ -1053,7 +1053,7 @@ document.addEventListener('click',function(e){
     // Card / bank / Zamtel: not yet live via API — show placeholder success
     if(m==='card'||m==='bank'||m==='zamtel'){alert('Card and bank payments are coming soon. Please select MTN or Airtel Money to complete your payment now.');return;}
     // Boost plans not yet in PawaPay catalogue
-    if(p.kind===’boost’&&!state.checkout.propertyId){alert(‘To boost a listing, open the listing you own and tap "Boost this listing" from there.’);return;}
+    if(p.kind==='boost'&&!state.checkout.propertyId){alert('To boost a listing, open the listing you own and tap "Boost this listing" from there.');return;}
     // MTN / Airtel → PawaPay push
     var phoneEl=document.getElementById('mmPhone');
     var rawPhone=(phoneEl&&phoneEl.value.trim())||'';
