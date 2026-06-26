@@ -697,6 +697,9 @@ function viewCheckout(){
   var m=state.checkout.method;
   var ref=state.checkout.momoRef||('VT-2026-'+(state.selectedId||'PAY').toUpperCase()+'-4821');
   var isMomo=!!state.checkout.momoPhone;
+  if(state.checkout.done && state.checkout.stripeReturn){
+    return '<div class="vt-page" style="padding-top:74px;background:#FAF7F1;min-height:100vh"><div class="r-checkout-inner" style="max-width:1020px;margin:0 auto;padding:34px 32px 90px"><a data-act="go:pricing" style="display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#6f6a60;cursor:pointer">\u2190 Back</a><div class="r-checkout-done" style="max-width:520px;margin:60px auto 0;background:#fff;border:1px solid #ece5d7;border-radius:20px;padding:48px 40px;text-align:center"><div style="width:84px;height:84px;border-radius:50%;background:#DCFCE7;display:flex;align-items:center;justify-content:center;margin:0 auto"><span style="font-size:40px;color:#16A34A">\u2713</span></div><h2 style="margin-top:24px;font-family:'+SG+';font-weight:800;font-size:28px;letter-spacing:-0.02em;color:#16131F">Payment confirmed</h2><p style="margin-top:12px;font-size:15px;line-height:1.6;color:#6f6a60">Your card payment went through. Head to Settings to see your new plan and start using your benefits.</p><div style="margin-top:28px;display:flex;flex-direction:column;gap:11px"><button data-act="go:settings" style="width:100%;height:52px;border:none;background:#16131F;color:#fff;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Go to my account</button><button data-act="go:browse" style="width:100%;height:52px;border:1px solid #e2dccb;background:#fff;color:#16131F;border-radius:100px;font-size:15px;font-weight:600;cursor:pointer">Back to listings</button></div></div></div></div>';
+  }
   if(state.checkout.done){
     var iconBg=isMomo?'#FEF3C7':'#DCFCE7';
     var iconColor=isMomo?'#D97706':'#16A34A';
@@ -712,7 +715,11 @@ function viewCheckout(){
   var form='';
   var inS='height:50px;border:1px solid #e2dccb;border-radius:12px;padding:0 15px;font-size:15px;color:#16131F;outline:none;background:#fff';
   if(m==='card'){
-    form='<div style="margin-top:22px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Card number</label><input placeholder="1234 5678 9012 3456" inputmode="numeric" style="'+inS+'"></div><div style="display:flex;gap:14px"><div style="flex:1;display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Expiry</label><input placeholder="MM / YY" style="'+inS+'"></div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">CVC</label><input placeholder="123" inputmode="numeric" style="'+inS+'"></div></div><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">Name on card</label><input placeholder="Grace Phiri" style="'+inS+'"></div></div>';
+    if(p.kind==='subscription'){
+      form='<div style="margin-top:22px;display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:14px 15px;font-size:14px;line-height:1.5;color:#6f6a60"><span style="color:#534AB7;flex-shrink:0">&#128274;</span><span>You\'ll be redirected to Stripe\'s secure checkout page to complete your payment. Your card details are never shared with Vertera.</span></div>';
+    } else {
+      form='<div style="margin-top:22px;display:flex;align-items:flex-start;gap:9px;background:#FEF9EC;border-radius:12px;padding:14px 15px;font-size:14px;line-height:1.5;color:#6f6a60"><span style="color:#D97706;flex-shrink:0">&#9432;</span><span>Card payments are available for subscription plans only. For this purchase, please choose MTN MoMo or Airtel Money.</span></div>';
+    }
   } else {
     var lbl=(checkoutMethods.filter(function(x){return x.key===m;})[0]||{}).label||'';
     form='<div style="margin-top:22px;display:flex;flex-direction:column;gap:14px"><div style="display:flex;flex-direction:column;gap:6px"><label style="font-size:13px;color:#8b857a;font-weight:500">'+lbl+' number</label><div style="display:flex;align-items:center;height:50px;border:1px solid #e2dccb;border-radius:12px;background:#fff;overflow:hidden"><div style="padding:0 13px;height:100%;display:flex;align-items:center;border-right:1px solid #ece5d7;font-size:15px;color:#16131F;font-weight:500;background:#FAF7F1">\uD83C\uDDFF\uD83C\uDDF2 +260</div><input id="mmPhone" placeholder="97 000 0000" type="tel" style="flex:1;min-width:0;height:100%;border:none;outline:none;padding:0 14px;font-size:15px;color:#16131F;background:none"></div></div><div style="display:flex;align-items:flex-start;gap:9px;background:#FAF7F1;border-radius:12px;padding:13px 15px;font-size:13.5px;line-height:1.5;color:#6f6a60"><span style="color:#9C7A47;flex-shrink:0">\u24D8</span><span>You\u2019ll get a prompt on your phone to approve the payment with your wallet PIN.</span></div></div>';
@@ -1142,8 +1149,29 @@ document.addEventListener('click',function(e){
     if(!state.token){alert('Please sign in first.');return;}
     var p=state.checkout.plan||checkoutPlans.report;
     var m=state.checkout.method;
-    // Card / bank / Zamtel: not yet live via API — show placeholder success
-    if(m==='card'){alert('Card payments are coming soon. Please select MTN or Airtel Money to complete your payment now.');return;}
+    if(m==='card'){
+      if(p.kind!=='subscription'){alert('Card payments are only available for subscription plans. Please choose MTN MoMo or Airtel Money for this purchase.');return;}
+      var tier='buyer';
+      if(p.name&&p.name.indexOf('Seller')!==-1) tier='seller';
+      else if(p.name&&p.name.indexOf('Bank')!==-1) tier='bank';
+      el.disabled=true; el.textContent='Redirecting to Stripe\u2026';
+      fetch(API+'/payments/stripe/checkout',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','Authorization':'Bearer '+state.token},
+        body:JSON.stringify({tier:tier})
+      })
+      .then(function(r){return r.json();})
+      .then(function(d){
+        if(d.url){window.location.href=d.url;return;}
+        el.disabled=false; el.textContent='Pay with card';
+        alert(d.error||'Could not start Stripe checkout. Please try again.');
+      })
+      .catch(function(){
+        el.disabled=false; el.textContent='Pay with card';
+        alert('Network error. Please check your connection and try again.');
+      });
+      return;
+    }
     // Boost plans not yet in PawaPay catalogue
     if(p.kind==='boost'&&!state.checkout.propertyId){alert('To boost a listing, open the listing you own and tap "Boost this listing" from there.');return;}
     // MTN / Airtel → PawaPay push
@@ -1479,6 +1507,9 @@ window.addEventListener('popstate',function(e){
   else{go(s.view||'home');}
   _popNav=false;
 });
+var _payParam=new URLSearchParams(location.search).get('payment');
+if(_payParam==='success'){state.view='checkout';state.checkout={plan:{name:'Your subscription',price:''},method:'card',done:true,propertyId:null,momoPhone:null,momoRef:null,stripeReturn:true};if(state.token){fetch(API+'/auth/me',{headers:{'Authorization':'Bearer '+state.token}}).then(function(r){return r.ok?r.json():null;}).then(function(u){if(u){state.user=u;renderNav();}}).catch(function(){});}}
+else if(_payParam==='cancel'){state.view='pricing';}
 renderNav(); renderFooter(); render();
 history.replaceState({view:state.view},'',location.pathname);
 fetchListings();
